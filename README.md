@@ -1,3 +1,11 @@
+# ▶ Play Creature Simulator in Your Browser
+
+## **[LAUNCH THE PLAYABLE BUILD →](https://creature-simulator-play-tvhsdvlgames.vercel.app/)**
+
+**No download or installation required.** Built in Godot 4.7.1 with keyboard/mouse and controller support.
+
+---
+
 # Creature Simulator
 
 A first-person creature-care simulation prototype built in **Godot 4.7.1**. Internally the project is titled **Specimen Care // Gloop**: the player works repeated lab shifts caring for a strange specimen whose health, trust, mood, hunger, filth, sleep, and behavior evolve over time.
