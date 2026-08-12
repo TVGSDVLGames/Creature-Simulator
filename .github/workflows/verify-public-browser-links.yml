@@ -1,0 +1,45 @@
+name: Verify public browser demo hosting
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-public-browser-links.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Creature Simulator public files
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BASE='https://rawcdn.githack.com/TVGSDVLGames/Creature-Simulator/26a0c896b9a887d9bfaf49a8a44bfae6f1d965af/web'
+          curl -L --fail --retry 3 -D /tmp/h-html -o /tmp/index.html "$BASE/index.html"
+          curl -L --fail --retry 3 -D /tmp/h-js -o /tmp/index.js "$BASE/index.js"
+          curl -L --fail --retry 3 -D /tmp/h-pck -o /tmp/index.pck "$BASE/index.pck"
+          curl -L --fail --retry 3 -D /tmp/h-wasm -o /tmp/index.wasm "$BASE/index.wasm"
+          grep -qi 'content-type: text/html' /tmp/h-html
+          grep -qi 'content-type: application/javascript\|content-type: text/javascript' /tmp/h-js
+          grep -qi 'content-type: application/wasm' /tmp/h-wasm
+          grep -q '<!DOCTYPE html>' /tmp/index.html
+          test "$(stat -c%s /tmp/index.pck)" -gt 100000
+          test "$(stat -c%s /tmp/index.wasm)" -gt 30000000
+          printf 'Creature public browser URL OK\n'
+
+      - name: Verify Balls Out public files
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BASE='https://rawcdn.githack.com/TVGSDVLGames/Balls-Out/191d400e72941c13a34c8a6f7adb6fb89ad2c36e/web'
+          curl -L --fail --retry 3 -D /tmp/bh-html -o /tmp/b-index.html "$BASE/index.html"
+          curl -L --fail --retry 3 -D /tmp/bh-js -o /tmp/b-index.js "$BASE/index.js"
+          curl -L --fail --retry 3 -D /tmp/bh-pck -o /tmp/b-index.pck "$BASE/index.pck"
+          curl -L --fail --retry 3 -D /tmp/bh-wasm -o /tmp/b-index.wasm "$BASE/index.wasm"
+          grep -qi 'content-type: text/html' /tmp/bh-html
+          grep -qi 'content-type: application/javascript\|content-type: text/javascript' /tmp/bh-js
+          grep -qi 'content-type: application/wasm' /tmp/bh-wasm
+          grep -q '<!DOCTYPE html>' /tmp/b-index.html
+          test "$(stat -c%s /tmp/b-index.pck)" -gt 100000
+          test "$(stat -c%s /tmp/b-index.wasm)" -gt 30000000
+          printf 'Balls Out public browser URL OK\n'
