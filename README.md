@@ -1,6 +1,6 @@
 # ▶ Play Creature Simulator in Your Browser
 
-## **[LAUNCH THE PLAYABLE BUILD →](https://creature-simulator-play-tvhsdvlgames.vercel.app/)**
+## **[LAUNCH THE PLAYABLE BUILD →](https://rawcdn.githack.com/TVGSDVLGames/Creature-Simulator/26a0c896b9a887d9bfaf49a8a44bfae6f1d965af/web/index.html)**
 
 **No download or installation required.** Built in Godot 4.7.1 with keyboard/mouse and controller support.
 
