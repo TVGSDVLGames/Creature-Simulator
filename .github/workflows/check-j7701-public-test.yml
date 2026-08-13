@@ -1,0 +1,7 @@
+name: Check J7701 Public Test
+on: [push]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsSL https://j7701-public-test-tvhsdvlgames.vercel.app/ | grep 'J7701 PUBLIC TEST'
