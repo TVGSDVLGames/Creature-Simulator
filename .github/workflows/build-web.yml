@@ -27,21 +27,22 @@ jobs:
           mkdir project
           tar -xJf websrc.tar.xz -C project --strip-components=1
 
-      - name: Apply current demo delta
+      - name: Apply verified current demo delta
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euxo pipefail
-          BASE='https://gloop-demo-delta-fs024e4hx-tvhsdvlgames.vercel.app'
-          : > demo.delta
-          for i in $(seq -w 0 10); do
-            curl -fsSL --retry 5 --retry-delay 2 "$BASE/part-$i" >> demo.delta
-          done
-          echo "staged bytes: $(wc -c < demo.delta)"
-          if head -c 5 demo.delta | grep -q '^/Td6W'; then
-            base64 -d demo.delta > demo.patch.xz
-          else
-            mv demo.delta demo.patch.xz
-          fi
+          API='https://api.github.com/repos/TVGSDVLGames/Creature-Simulator/git/blobs/25115f3c646e13ca68a9f100d9e5108547284478'
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "$API" > blob.json
+          python3 - <<'PY'
+          import base64,json
+          data=json.load(open('blob.json'))
+          open('demo.patch.xz','wb').write(base64.b64decode(data['content']))
+          PY
           echo 'd4a563e7b519dfcda5f0614516ab556b85784d36a2ebcc0851915170f2155d46  demo.patch.xz' | sha256sum -c -
           xz -dc demo.patch.xz > demo.patch
           echo 'e4dc8df072599402662937b9aa71d253a7bccbdaa2d359edd7afcf44e85f448b  demo.patch' | sha256sum -c -
