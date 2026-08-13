@@ -1,0 +1,106 @@
+name: Publish J-7701 to Netlify
+
+on:
+  push:
+    branches: [vercel-demo]
+    paths:
+      - '.github/workflows/publish-netlify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reassemble current demo source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          cat .websrc/part-*.b64 | base64 -d > websrc.tar.xz
+          echo 'fae5cfd15d4494fe9592cb08cd4640b3a452f5d80230ddb979a63be79db0a19c  websrc.tar.xz' | sha256sum -c -
+          rm -rf project && mkdir project
+          tar -xJf websrc.tar.xz -C project --strip-components=1
+          API='https://api.github.com/repos/TVGSDVLGames/Creature-Simulator/git/blobs/25115f3c646e13ca68a9f100d9e5108547284478'
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$API" > blob.json
+          python3 - <<'PY'
+          import base64,json
+          data=json.load(open('blob.json'))
+          open('demo.patch.xz','wb').write(base64.b64decode(data['content']))
+          PY
+          echo 'd4a563e7b519dfcda5f0614516ab556b85784d36a2ebcc0851915170f2155d46  demo.patch.xz' | sha256sum -c -
+          xz -dc demo.patch.xz > demo.patch
+          echo 'e4dc8df072599402662937b9aa71d253a7bccbdaa2d359edd7afcf44e85f448b  demo.patch' | sha256sum -c -
+          patch -d project -p1 < demo.patch
+          grep -q 'Specimen Care - Gloop Demo' project/project.godot
+          test -s project/scripts/mobile_controls.gd
+
+      - name: Install Godot 4.7.1
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          unzip -q godot.zip -d godot
+          GODOT="$(find godot -type f -name '*x86_64' | head -1)"
+          chmod +x "$GODOT"
+          echo "GODOT=$PWD/$GODOT" >> "$GITHUB_ENV"
+          "$GODOT" --version
+
+      - name: Build fresh demo PCK into proven Web runtime
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > project/export_presets.cfg <<'EOF'
+          [preset.0]
+          name="Web"
+          platform="Web"
+          runnable=false
+          advanced_options=false
+          dedicated_server=false
+          custom_features=""
+          export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
+          export_path="build/web/index.html"
+          script_export_mode=2
+          [preset.0.options]
+          custom_template/debug=""
+          custom_template/release=""
+          variant/extensions_support=false
+          variant/thread_support=false
+          vram_texture_compression/for_desktop=true
+          vram_texture_compression/for_mobile=true
+          html/canvas_resize_policy=2
+          html/focus_canvas_on_start=true
+          progressive_web_app/enabled=false
+          EOF
+          "$GODOT" --headless --path project --editor --quit
+          test -s web/index.wasm
+          test -s web/index.js
+          "$GODOT" --headless --path project --export-pack Web "$PWD/web/index.pck"
+          PCK_SIZE=$(stat -c%s web/index.pck)
+          python3 - "$PCK_SIZE" <<'PY'
+          import re,sys
+          p='web/index.html'
+          s=open(p,encoding='utf-8').read()
+          s=s.replace('<title>Specimen Care - Gloop</title>', '<title>Experiment J-7701</title>')
+          s=re.sub(r'"index\.pck":\d+', '"index.pck":'+sys.argv[1], s)
+          s=s.replace('width=device-width, user-scalable=no, initial-scale=1.0', 'width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no')
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+          grep -q 'Experiment J-7701' web/index.html
+          grep -q "\"index.pck\":$PCK_SIZE" web/index.html
+          ls -lh web/index.html web/index.js web/index.wasm web/index.pck
+
+      - name: Publish anonymously to Netlify
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npx --yes netlify-cli@latest deploy --allow-anonymous --dir "$PWD/web" --no-build | tee netlify-output.txt
+          cat netlify-output.txt
