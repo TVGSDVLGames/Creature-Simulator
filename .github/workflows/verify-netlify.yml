@@ -1,0 +1,38 @@
+name: Verify Netlify J-7701
+
+on:
+  push:
+    branches: [vercel-demo]
+    paths:
+      - '.github/workflows/verify-netlify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe public site
+        shell: bash
+        run: |
+          set -x
+          URL='https://lambent-croissant-cd8fa5.netlify.app'
+          echo '=== ROOT HEADERS ==='
+          curl -sS -D root.headers -o root.body "$URL/" || true
+          cat root.headers
+          echo '=== ROOT BODY FIRST 500 ==='
+          head -c 500 root.body || true
+          echo
+          echo '=== ASSETS ==='
+          for p in index.pck index.wasm index.js; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/$p" || true)
+            size=$(curl -sS -o /dev/null -w '%{size_download}' "$URL/$p" || true)
+            echo "$p HTTP=$code SIZE=$size"
+          done
+          echo '=== PASSWORD PROBES ==='
+          for auth in 'netlify:My-Drop-Site' ':My-Drop-Site' 'My-Drop-Site:'; do
+            code=$(curl -sS -u "$auth" -o /dev/null -w '%{http_code}' "$URL/" || true)
+            echo "$auth -> $code"
+          done
