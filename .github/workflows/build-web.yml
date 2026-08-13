@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.websrc/**'
+      - '.demo-src/**'
       - '.github/workflows/build-web.yml'
   workflow_dispatch:
 
@@ -26,6 +27,17 @@ jobs:
           rm -rf project
           mkdir project
           tar -xJf websrc.tar.xz -C project --strip-components=1
+          echo "BASE_PROJECT_SIZE=$(du -sh project | cut -f1)"
+          if test -f project/assets/pbr/floor_tiles_albedo.png; then echo HAS_PBR=YES; else echo HAS_PBR=NO; fi
+          if test -f project/assets/audio/lab_hum.wav; then echo HAS_AUDIO=YES; else echo HAS_AUDIO=NO; fi
+
+      - name: Overlay current demo source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          if test -d .demo-src; then
+            cp -a .demo-src/. project/
+          fi
 
       - name: Install Godot 4.7.1
         shell: bash
@@ -77,7 +89,7 @@ jobs:
           variant/extensions_support=false
           variant/thread_support=false
           vram_texture_compression/for_desktop=true
-          vram_texture_compression/for_mobile=false
+          vram_texture_compression/for_mobile=true
           html/export_icon=true
           html/custom_html_shell=""
           html/head_include=""
@@ -99,6 +111,7 @@ jobs:
           test -s web/index.js
           test -s web/index.wasm
           test -s web/index.pck
+          grep -q 'Specimen Care: Gloop Demo' project/project.godot
           ls -lh web
 
       - name: Commit generated browser build
@@ -111,6 +124,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Browser build already current.'
           else
-            git commit -m 'Build browser-playable Creature Simulator'
+            git commit -m 'Build Experiment J-7701 browser demo'
             git push
           fi
