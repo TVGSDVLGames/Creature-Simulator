@@ -28,8 +28,24 @@ jobs:
           mkdir project
           tar -xJf websrc.tar.xz -C project --strip-components=1
           echo "BASE_PROJECT_SIZE=$(du -sh project | cut -f1)"
-          if test -f project/assets/pbr/floor_tiles_albedo.png; then echo HAS_PBR=YES; else echo HAS_PBR=NO; fi
-          if test -f project/assets/audio/lab_hum.wav; then echo HAS_AUDIO=YES; else echo HAS_AUDIO=NO; fi
+          find project/assets -maxdepth 2 -type f -printf '%P\n' | sort || true
+
+      - name: Publish baseline source snapshot
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf .base-snapshot
+          mkdir -p .base-snapshot/scripts .base-snapshot/vendor/first_person
+          cp project/project.godot .base-snapshot/project.godot
+          for f in main.gd game_systems.gd player.gd release_manager.gd waste.gd; do cp "project/scripts/$f" ".base-snapshot/scripts/$f"; done
+          cp project/vendor/first_person/Head.gd .base-snapshot/vendor/first_person/Head.gd
+          git config user.name "TVGSDVLGames"
+          git config user.email "TVGSDVLGames@users.noreply.github.com"
+          git add -f .base-snapshot
+          if ! git diff --cached --quiet; then
+            git commit -m 'Expose browser baseline source for demo patching'
+            git push
+          fi
 
       - name: Overlay current demo source
         shell: bash
@@ -51,7 +67,7 @@ jobs:
           echo "GODOT=$PWD/$GODOT" >> "$GITHUB_ENV"
           "$GODOT" --version
 
-      - name: Install official Godot 4.7.1 Web template
+      - name: Install official Godot 4.7.1 Web templates
         shell: bash
         run: |
           set -euxo pipefail
@@ -60,7 +76,8 @@ jobs:
           DEST="$HOME/.local/share/godot/export_templates/4.7.1.stable"
           mkdir -p "$DEST"
           unzip -p templates.tpz 'templates/web_nothreads_release.zip' > "$DEST/web_nothreads_release.zip"
-          ls -lh "$DEST/web_nothreads_release.zip"
+          unzip -p templates.tpz 'templates/web_nothreads_debug.zip' > "$DEST/web_nothreads_debug.zip"
+          ls -lh "$DEST"/web_nothreads_*.zip
 
       - name: Configure non-threaded Web export
         shell: bash
@@ -111,7 +128,7 @@ jobs:
           test -s web/index.js
           test -s web/index.wasm
           test -s web/index.pck
-          grep -q 'Specimen Care: Gloop Demo' project/project.godot
+          grep -q 'Specimen Care - Gloop Demo' project/project.godot
           ls -lh web
 
       - name: Commit generated browser build
