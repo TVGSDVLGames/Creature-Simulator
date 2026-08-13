@@ -1,4 +1,4 @@
-name: Build Experiment J-7701 Browser Demo
+name: Build and Publish Experiment J-7701 Demo
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-web:
@@ -69,7 +69,6 @@ jobs:
           unzip -p templates.tpz 'templates/web_nothreads_debug.zip' > "$DEST/web_nothreads_debug.zip"
           test -s "$DEST/web_nothreads_release.zip"
           test -s "$DEST/web_nothreads_debug.zip"
-          ls -lh "$DEST"/web_nothreads_*.zip
 
       - name: Configure non-threaded Web export
         shell: bash
@@ -93,8 +92,8 @@ jobs:
 
           [preset.0.options]
 
-          custom_template/debug="/home/runner/.local/share/godot/export_templates/4.7.1.stable/web_nothreads_debug.zip"
-          custom_template/release="/home/runner/.local/share/godot/export_templates/4.7.1.stable/web_nothreads_release.zip"
+          custom_template/debug=""
+          custom_template/release=""
           variant/extensions_support=false
           variant/thread_support=false
           vram_texture_compression/for_desktop=true
@@ -105,15 +104,7 @@ jobs:
           html/canvas_resize_policy=2
           html/focus_canvas_on_start=true
           html/experimental_virtual_keyboard=false
-          progressive_web_app/enabled=true
-          progressive_web_app/ensure_cross_origin_isolation_headers=false
-          progressive_web_app/display=1
-          progressive_web_app/orientation=0
-          progressive_web_app/icon_144x144=""
-          progressive_web_app/icon_180x180=""
-          progressive_web_app/icon_512x512=""
-          progressive_web_app/background_color=Color(0.008, 0.014, 0.018, 1)
-          progressive_web_app/offline_page=""
+          progressive_web_app/enabled=false
           EOF
 
       - name: Import and export browser demo
@@ -131,16 +122,9 @@ jobs:
           grep -q 'Specimen Care - Gloop Demo' project/project.godot
           ls -lh web
 
-      - name: Commit generated browser build
+      - name: Publish anonymously to Netlify
         shell: bash
         run: |
           set -euxo pipefail
-          git config user.name "TVGSDVLGames"
-          git config user.email "TVGSDVLGames@users.noreply.github.com"
-          git add -f web
-          if git diff --cached --quiet; then
-            echo 'Browser build already current.'
-          else
-            git commit -m 'Build Experiment J-7701 browser demo'
-            git push
-          fi
+          npx --yes netlify-cli@latest deploy --allow-anonymous --dir "$PWD/web" --no-build | tee netlify-output.txt
+          cat netlify-output.txt
