@@ -34,10 +34,7 @@ jobs:
         run: |
           set -euxo pipefail
           API='https://api.github.com/repos/TVGSDVLGames/Creature-Simulator/git/blobs/25115f3c646e13ca68a9f100d9e5108547284478'
-          curl -fsSL \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "$API" > blob.json
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$API" > blob.json
           python3 - <<'PY'
           import base64,json
           data=json.load(open('blob.json'))
@@ -54,8 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          curl -L --fail --retry 3 -o godot.zip \
-            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          curl -L --fail --retry 3 -o godot.zip https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
           unzip -q godot.zip -d godot
           GODOT="$(find godot -type f -name '*x86_64' | head -1)"
           chmod +x "$GODOT"
@@ -66,12 +62,14 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          curl -L --fail --retry 3 -o templates.tpz \
-            https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
+          curl -L --fail --retry 3 -o templates.tpz https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_export_templates.tpz
           DEST="$HOME/.local/share/godot/export_templates/4.7.1.stable"
           mkdir -p "$DEST"
           unzip -p templates.tpz 'templates/web_nothreads_release.zip' > "$DEST/web_nothreads_release.zip"
           unzip -p templates.tpz 'templates/web_nothreads_debug.zip' > "$DEST/web_nothreads_debug.zip"
+          test -s "$DEST/web_nothreads_release.zip"
+          test -s "$DEST/web_nothreads_debug.zip"
+          ls -lh "$DEST"/web_nothreads_*.zip
 
       - name: Configure non-threaded Web export
         shell: bash
@@ -95,8 +93,8 @@ jobs:
 
           [preset.0.options]
 
-          custom_template/debug=""
-          custom_template/release=""
+          custom_template/debug="/home/runner/.local/share/godot/export_templates/4.7.1.stable/web_nothreads_debug.zip"
+          custom_template/release="/home/runner/.local/share/godot/export_templates/4.7.1.stable/web_nothreads_release.zip"
           variant/extensions_support=false
           variant/thread_support=false
           vram_texture_compression/for_desktop=true
