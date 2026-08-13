@@ -1,0 +1,7 @@
+name: Check J7701 Production Alias
+on: [push]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -I -L https://experiment-j7701-tvhsdvlgames.vercel.app/
