@@ -32,10 +32,16 @@ jobs:
         run: |
           set -euxo pipefail
           BASE='https://gloop-demo-delta-fs024e4hx-tvhsdvlgames.vercel.app'
-          : > demo.patch.xz
+          : > demo.delta
           for i in $(seq -w 0 10); do
-            curl -fsSL --retry 5 --retry-delay 2 "$BASE/part-$i" >> demo.patch.xz
+            curl -fsSL --retry 5 --retry-delay 2 "$BASE/part-$i" >> demo.delta
           done
+          echo "staged bytes: $(wc -c < demo.delta)"
+          if head -c 5 demo.delta | grep -q '^/Td6W'; then
+            base64 -d demo.delta > demo.patch.xz
+          else
+            mv demo.delta demo.patch.xz
+          fi
           echo 'd4a563e7b519dfcda5f0614516ab556b85784d36a2ebcc0851915170f2155d46  demo.patch.xz' | sha256sum -c -
           xz -dc demo.patch.xz > demo.patch
           echo 'e4dc8df072599402662937b9aa71d253a7bccbdaa2d359edd7afcf44e85f448b  demo.patch' | sha256sum -c -
