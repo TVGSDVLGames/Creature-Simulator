@@ -27,6 +27,8 @@ jobs:
           echo 'fae5cfd15d4494fe9592cb08cd4640b3a452f5d80230ddb979a63be79db0a19c  websrc.tar.xz' | sha256sum -c -
           rm -rf project && mkdir project
           tar -xJf websrc.tar.xz -C project --strip-components=1
+
+          # Existing verified delta: browser baseline -> two-shift demo.
           API='https://api.github.com/repos/TVGSDVLGames/Creature-Simulator/git/blobs/25115f3c646e13ca68a9f100d9e5108547284478'
           curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$API" > blob.json
           python3 - <<'PY'
@@ -38,8 +40,26 @@ jobs:
           xz -dc demo.patch.xz > demo.patch
           echo 'e4dc8df072599402662937b9aa71d253a7bccbdaa2d359edd7afcf44e85f448b  demo.patch' | sha256sum -c -
           patch -d project -p1 < demo.patch
+
+          # Current pass: right-stick-only mobile camera + expanded J-7701 demo story.
+          API2='https://api.github.com/repos/TVGSDVLGames/Creature-Simulator/git/blobs/09eced6392047d0846ff2d0814b7901d61840613'
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "$API2" > pass_blob.json
+          python3 - <<'PY'
+          import base64,json
+          data=json.load(open('pass_blob.json'))
+          open('demo_content_mobile.patch.xz','wb').write(base64.b64decode(data['content']))
+          PY
+          echo '5e138d6f833a28d0ac0bd469cef8a680790af275abe7cfead1246f5adb90c8d2  demo_content_mobile.patch.xz' | sha256sum -c -
+          xz -dc demo_content_mobile.patch.xz > demo_content_mobile.patch
+          echo '644d707541e2d17175c63731ef3f77fe07b5476bed6ca7bc811d48ca8f2f5b8c  demo_content_mobile.patch' | sha256sum -c -
+          patch -d project -p1 < demo_content_mobile.patch
+
           grep -q 'Specimen Care - Gloop Demo' project/project.godot
-          test -s project/scripts/mobile_controls.gd
+          grep -q 'RIGHT_STICK_ONLY' project/scripts/mobile_controls.gd
+          grep -q 'swipe=DISABLED' project/scripts/mobile_controls.gd
+          grep -q 'RESTRICTED ARCHIVE' project/scripts/game_systems.gd
+          grep -q 'OPTIONAL RESEARCH COMPLETE' project/scripts/game_systems.gd
+          test -s project/scripts/archive_terminal.gd
 
       - name: Install Godot 4.7.1
         shell: bash
