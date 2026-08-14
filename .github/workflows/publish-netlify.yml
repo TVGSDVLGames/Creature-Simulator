@@ -124,3 +124,10 @@ jobs:
           set -euxo pipefail
           npx --yes netlify-cli@latest deploy --allow-anonymous --dir "$PWD/web" --no-build | tee netlify-output.txt
           cat netlify-output.txt
+
+      - name: Preserve claim details privately
+        uses: actions/upload-artifact@v4
+        with:
+          name: netlify-claim-details
+          path: netlify-output.txt
+          retention-days: 1
