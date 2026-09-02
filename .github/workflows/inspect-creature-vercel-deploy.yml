@@ -8,18 +8,20 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect generated deployment and stable alias
+      - name: Inspect possible production aliases
         shell: bash
         run: |
           set +e
-          for BASE in 'https://creature-simulator-play-lh3rdr8cy-tvhsdvlgames.vercel.app' 'https://creature-simulator-play-tvhsdvlgames.vercel.app'; do
+          for BASE in \
+            'https://creature-simulator-play-lh3rdr8cy-tvhsdvlgames.vercel.app' \
+            'https://creature-simulator-play-tvhsdvlgames.vercel.app' \
+            'https://creature-simulator-play.vercel.app' \
+            'https://experiment-j7701.vercel.app' \
+            'https://experiment-j7701-tvhsdvlgames.vercel.app' \
+            'https://creature-simulator.vercel.app'; do
             echo "=== $BASE ==="
-            curl -sSIL "$BASE/" | head -40
-            curl -sSL "$BASE/" -o /tmp/root.html
+            curl -sSI --max-time 12 "$BASE/" | grep -Ei 'HTTP/|location:|content-type:|x-vercel-id:' | head -12
+            curl -sSL --max-time 15 "$BASE/" -o /tmp/root.html
             echo "root_bytes=$(stat -c%s /tmp/root.html 2>/dev/null)"
             grep -o '<title>[^<]*</title>' /tmp/root.html | head -1
-            head -c 300 /tmp/root.html | tr '\n' ' '; echo
-            curl -sSL "$BASE/index.pck" -o /tmp/live.pck
-            echo "pck_bytes=$(stat -c%s /tmp/live.pck 2>/dev/null) pck_sha=$(sha256sum /tmp/live.pck 2>/dev/null | awk '{print $1}')"
           done
-          curl -sSI 'https://rawcdn.githack.com/TVGSDVLGames/Creature-Simulator/b806f345f008173af6353fea875614647ecc888c/web/index.pck' | grep -Ei 'HTTP/|content-type|content-length|access-control' || true
