@@ -1,0 +1,25 @@
+name: Inspect Creature Vercel Deploy
+on:
+  push:
+    branches: [vercel-demo]
+    paths:
+      - '.github/workflows/inspect-creature-vercel-deploy.yml'
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect generated deployment and stable alias
+        shell: bash
+        run: |
+          set +e
+          for BASE in 'https://creature-simulator-play-lh3rdr8cy-tvhsdvlgames.vercel.app' 'https://creature-simulator-play-tvhsdvlgames.vercel.app'; do
+            echo "=== $BASE ==="
+            curl -sSIL "$BASE/" | head -40
+            curl -sSL "$BASE/" -o /tmp/root.html
+            echo "root_bytes=$(stat -c%s /tmp/root.html 2>/dev/null)"
+            grep -o '<title>[^<]*</title>' /tmp/root.html | head -1
+            head -c 300 /tmp/root.html | tr '\n' ' '; echo
+            curl -sSL "$BASE/index.pck" -o /tmp/live.pck
+            echo "pck_bytes=$(stat -c%s /tmp/live.pck 2>/dev/null) pck_sha=$(sha256sum /tmp/live.pck 2>/dev/null | awk '{print $1}')"
+          done
+          curl -sSI 'https://rawcdn.githack.com/TVGSDVLGames/Creature-Simulator/b806f345f008173af6353fea875614647ecc888c/web/index.pck' | grep -Ei 'HTTP/|content-type|content-length|access-control' || true
