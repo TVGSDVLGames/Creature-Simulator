@@ -1,7 +1,33 @@
-name: Check J7701 Production Alias
-on: [push]
+name: Check Creature Simulator Production
+
+on:
+  push:
+    branches: [vercel-demo]
+    paths:
+      - '.github/workflows/check-vercel-production.yml'
+      - 'web/**'
+  workflow_dispatch:
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - run: curl -I -L https://experiment-j7701-tvhsdvlgames.vercel.app/
+      - uses: actions/checkout@v4
+      - name: Wait for Vercel Git deployment
+        run: sleep 90
+      - name: Verify production matches current mobile web build
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BASE='https://creature-simulator-play-tvhsdvlgames.vercel.app'
+          curl -fsSL --retry 6 --retry-delay 5 -o /tmp/live.html "$BASE/"
+          curl -fsSL --retry 6 --retry-delay 5 -o /tmp/live.pck "$BASE/index.pck"
+          grep -q 'Experiment J-7701' /tmp/live.html
+          LOCAL_SHA=$(sha256sum web/index.pck | awk '{print $1}')
+          LIVE_SHA=$(sha256sum /tmp/live.pck | awk '{print $1}')
+          LOCAL_SIZE=$(stat -c%s web/index.pck)
+          LIVE_SIZE=$(stat -c%s /tmp/live.pck)
+          echo "LOCAL_PCK size=$LOCAL_SIZE sha=$LOCAL_SHA"
+          echo "LIVE_PCK  size=$LIVE_SIZE sha=$LIVE_SHA"
+          test "$LIVE_SHA" = "$LOCAL_SHA"
+          echo 'CREATURE_SIMULATOR_PRODUCTION_MATCHES_MOBILE_BUILD'
