@@ -9,16 +9,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify live production is the mobile build
+      - name: Verify public production is exact mobile build
         shell: bash
         run: |
           set -euxo pipefail
-          BASE='https://creature-simulator-play-tvhsdvlgames.vercel.app'
+          BASE='https://creature-simulator-play.vercel.app'
           curl -fsSL --retry 8 --retry-delay 3 -o /tmp/live.html "$BASE/"
           curl -fsSL --retry 8 --retry-delay 3 -o /tmp/live.pck "$BASE/index.pck"
+          curl -fsSL --retry 8 --retry-delay 3 -o /tmp/live.wasm "$BASE/index.wasm"
           grep -q 'Experiment J-7701' /tmp/live.html
-          LOCAL_SHA=$(sha256sum web/index.pck | awk '{print $1}')
-          LIVE_SHA=$(sha256sum /tmp/live.pck | awk '{print $1}')
-          echo "LOCAL=$LOCAL_SHA LIVE=$LIVE_SHA"
-          test "$LIVE_SHA" = "$LOCAL_SHA"
-          echo 'VERCEL_MOBILE_BUILD_VERIFIED'
+          grep -q 'viewport-fit=cover' /tmp/live.html
+          test "$(stat -c%s /tmp/live.pck)" -eq 405896
+          test "$(stat -c%s /tmp/live.wasm)" -eq 39513091
+          LOCAL_PCK_SHA=$(sha256sum web/index.pck | awk '{print $1}')
+          LIVE_PCK_SHA=$(sha256sum /tmp/live.pck | awk '{print $1}')
+          LOCAL_WASM_SHA=$(sha256sum web/index.wasm | awk '{print $1}')
+          LIVE_WASM_SHA=$(sha256sum /tmp/live.wasm | awk '{print $1}')
+          echo "PCK local=$LOCAL_PCK_SHA live=$LIVE_PCK_SHA"
+          echo "WASM local=$LOCAL_WASM_SHA live=$LIVE_WASM_SHA"
+          test "$LIVE_PCK_SHA" = "$LOCAL_PCK_SHA"
+          test "$LIVE_WASM_SHA" = "$LOCAL_WASM_SHA"
+          echo 'VERCEL_PUBLIC_MOBILE_BUILD_VERIFIED'
