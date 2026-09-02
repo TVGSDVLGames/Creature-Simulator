@@ -1,0 +1,50 @@
+name: Deploy Creature Simulator Mobile Build to Vercel
+
+on:
+  push:
+    branches: [vercel-demo]
+    paths:
+      - '.github/workflows/deploy-creature-vercel.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm exact mobile build
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -q 'Experiment J-7701' web/index.html
+          test "$(stat -c%s web/index.pck)" -eq 405896
+          test "$(stat -c%s web/index.wasm)" -eq 39513091
+      - name: Deploy full web build to Creature Simulator production
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo 'VERCEL_TOKEN_MISSING'
+            exit 2
+          fi
+          cd web
+          npx --yes vercel@latest link --yes --project creature-simulator-play --scope tvhsdvlgames --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prod --yes --scope tvhsdvlgames --token "$VERCEL_TOKEN" | tee /tmp/vercel-url.txt
+      - name: Verify production exact PCK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          BASE='https://creature-simulator-play-tvhsdvlgames.vercel.app'
+          for i in $(seq 1 12); do
+            curl -fsSL -o /tmp/live.html "$BASE/" || true
+            curl -fsSL -o /tmp/live.pck "$BASE/index.pck" || true
+            if grep -q 'Experiment J-7701' /tmp/live.html 2>/dev/null && [ "$(sha256sum /tmp/live.pck | awk '{print $1}')" = "$(sha256sum web/index.pck | awk '{print $1}')" ]; then
+              echo 'CREATURE_SIMULATOR_MOBILE_PRODUCTION_VERIFIED'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'PRODUCTION_DID_NOT_MATCH'
+          exit 1
