@@ -118,6 +118,13 @@ jobs:
           grep -q "\"index.pck\":$PCK_SIZE" web/index.html
           ls -lh web/index.html web/index.js web/index.wasm web/index.pck
 
+      - name: Preserve mobile web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: gloop-mobile-web
+          path: web
+          retention-days: 30
+
       - name: Publish anonymously to Netlify
         shell: bash
         run: |
