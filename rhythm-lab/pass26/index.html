@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rhythm Lab</title>
+<style>html,body{margin:0;background:#090b0e;color:#dfe7ec;font:15px system-ui}#loading{height:100vh;display:grid;place-items:center;text-align:center}small{opacity:.65}</style>
+<div id="loading">Loading Rhythm Lab…<br><small>HR-16 • HR-16B • SR-16</small></div>
+<script>
+(async()=>{
+ try{
+  const base='https://raw.githubusercontent.com/TVGSDVLGames/Balls-Out/main/rhythm-lab-pass26/';
+  const names=['part00.txt','part01.txt','part02.txt','part03a.txt'];
+  const parts=await Promise.all(names.map(n=>fetch(base+n,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error(n+' '+r.status);return r.text()})));
+  const joined=parts.join('');
+  const cut=joined.indexOf('const ROM_B64 =');
+  if(cut<0)throw Error('UI payload marker missing');
+  const prefix=joined.slice(0,cut);
+  const tail='</scr'+'ipt>'+
+   '<script src="https://raw.githack.com/TVGSDVLGames/Balls-Out/main/web/lab/rhythm-lab/pass26/runtime-core.js"></scr'+'ipt>'+
+   '<script src="https://raw.githack.com/TVGSDVLGames/Balls-Out/main/web/lab/rhythm-lab/pass26/runtime-ui-a.js"></scr'+'ipt>'+
+   '<script src="https://raw.githack.com/TVGSDVLGames/Creature-Simulator/main/rhythm-lab/pass26/runtime-boot.js"></scr'+'ipt>'+
+   '<script>document.addEventListener("change",e=>{if(["patternLen","appPatternLen","p26PatternLen"].includes(e.target.id))setPatternLength(e.target.value);if(e.target.id==="voiceSel"){padState[selectedPad].voice=+e.target.value;renderPads();syncEditor();renderVoiceBrowser();triggerPad(selectedPad,105)}});document.addEventListener("input",e=>{if(e.target.id==="bpm")document.getElementById("bpmv").textContent=e.target.value;if(e.target.id==="swing")document.getElementById("swingv").textContent=e.target.value;if(e.target.id==="tune"){padState[selectedPad].tune=+e.target.value;document.getElementById("tunev").textContent=e.target.value}if(e.target.id==="vol"){padState[selectedPad].vol=+e.target.value;document.getElementById("volv").textContent=e.target.value}if(e.target.id==="pan"){padState[selectedPad].pan=+e.target.value;document.getElementById("panv").textContent=e.target.value}});</scr'+'ipt></body></html>';
+  document.open();document.write(prefix+tail);document.close();
+ }catch(e){document.getElementById('loading').textContent='Load failed: '+e.message;console.error(e);}
+})();
+</script>
