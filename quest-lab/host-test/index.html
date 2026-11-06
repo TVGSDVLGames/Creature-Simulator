@@ -1,7 +1,72 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quest WebXR Hosting Check</title><style>body{font-family:system-ui;background:#111821;color:#edf4ff;max-width:700px;margin:8vh auto;padding:24px}output{display:block;white-space:pre-line;background:#263345;padding:20px;border-radius:10px;line-height:1.7}button{padding:14px 22px;border:0;border-radius:8px;background:#3876df;color:white;font-size:17px}button:disabled{opacity:.45}</style></head><body><h1>Quest 3: WebXR Hosting Check</h1><p>This checks whether a hosted page can start an immersive VR session on your Quest. Open it in the Meta Quest Browser.</p><output id="status">Checking device support...</output><p><button id="enter" disabled>Enter VR test</button></p><p id="help">This page uses no external assets or libraries.</p><canvas hidden id="gl"></canvas><script>
-let s=null,g=null;const out=document.getElementById('status'),button=document.getElementById('enter'),help=document.getElementById('help'),cv=document.getElementById('gl');
-(async()=>{const lines=['Secure connection: '+(isSecureContext?'YES':'NO'),'WebXR API: '+(navigator.xr?'YES':'NO')];if(navigator.xr){for(const mode of ['immersive-vr','immersive-ar'])try{const ok=await navigator.xr.isSessionSupported(mode);lines.push(mode+': '+(ok?'SUPPORTED':'not supported'));if(mode==='immersive-vr')button.disabled=!ok}catch(e){lines.push(mode+': '+e.message)}}out.textContent=lines.join('\n')})();
-function draw(t,f){if(!s)return;const p=f.getViewerPose(ref);s.requestAnimationFrame(draw);if(!p)return;g.bindFramebuffer(g.FRAMEBUFFER,s.renderState.baseLayer.framebuffer);for(const view of p.views){const v=s.renderState.baseLayer.getViewport(view);g.viewport(v.x,v.y,v.width,v.height);g.clearColor(.06,.12,.20,1);g.clear(g.COLOR_BUFFER_BIT)}}
-let ref;
-button.onclick=async()=>{try{button.disabled=true;g=cv.getContext('webgl',{xrCompatible:true});if(!g)throw Error('WebGL unavailable');await g.makeXRCompatible();s=await navigator.xr.requestSession('immersive-vr');s.updateRenderState({baseLayer:new XRWebGLLayer(s,g)});ref=await s.requestReferenceSpace('local');s.addEventListener('end',()=>{s=null;button.disabled=false;help.textContent='VR session exited successfully.'});help.textContent='VR session started. Use the Quest exit control to return.';s.requestAnimationFrame(draw)}catch(e){out.textContent+='\nVR launch error: '+e.message;button.disabled=false}};
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quest 3 WebXR Stereo Test</title>
+<style>body{margin:0;background:#10151e;color:#f0f6ff;font:16px system-ui,Arial,sans-serif}main{max-width:700px;margin:8vh auto;padding:24px}h1{font-size:27px}p{line-height:1.5;color:#c4cfde}#status{white-space:pre-line;padding:16px;line-height:1.8;background:#1e2b3d;border-radius:8px;margin:16px 0}button{font:inherit;padding:14px 24px;background:#417ad9;color:white;border:0;border-radius:8px;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}canvas{position:fixed;top:0;left:0;width:1px;height:1px;pointer-events:none}</style>
+</head><body><main><h1>Quest 3 — stereoscopic VR hosting test</h1>
+<p>Open this page in Meta Quest Browser and tap <b>Enter VR</b>. Three actual 3D cubes appear at different distances. Move your head left and right to check parallax and real binocular depth. No external libraries, textures, or downloads.</p>
+<div id="status">Checking Quest WebXR support…</div><button id="enter" disabled>Enter VR</button><p id="note">VR requires HTTPS and a compatible headset browser.</p></main><canvas id="view"></canvas>
+<script>
+const status=document.getElementById('status'),btn=document.getElementById('enter'),note=document.getElementById('note'),canvas=document.getElementById('view');
+let session=null,gl=null,program=null,refSpace=null,positionCount=0,projectionLoc=null,viewLoc=null;
+function cube(x,y,z,size,color){
+ const s=size/2,v=[];
+ const c=[[x-s,y-s,z-s],[x+s,y-s,z-s],[x+s,y+s,z-s],[x-s,y+s,z-s],[x-s,y-s,z+s],[x+s,y-s,z+s],[x+s,y+s,z+s],[x-s,y+s,z+s]];
+ const faces=[[0,1,2,0,2,3],[5,4,7,5,7,6],[4,0,3,4,3,7],[1,5,6,1,6,2],[3,2,6,3,6,7],[4,5,1,4,1,0]];
+ faces.forEach((f,i)=>f.forEach(idx=>v.push(...c[idx],...color.map(q=>q*(0.66+(i%3)*0.16)))));
+ return v;
+}
+function shader(type,code){
+ const s=gl.createShader(type);gl.shaderSource(s,code);gl.compileShader(s);
+ if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;
+}
+function initialize(){
+ gl=canvas.getContext('webgl',{xrCompatible:true,alpha:false,antialias:true});
+ if(!gl)throw Error('WebGL unavailable');
+ program=gl.createProgram();
+ gl.attachShader(program,shader(gl.VERTEX_SHADER,'attribute vec3 aPos; attribute vec3 aColor; uniform mat4 uProj; uniform mat4 uView; varying vec3 vColor; void main(){vColor=aColor; gl_Position=uProj*uView*vec4(aPos,1.0);}'));
+ gl.attachShader(program,shader(gl.FRAGMENT_SHADER,'precision mediump float; varying vec3 vColor; void main(){gl_FragColor=vec4(vColor,1.0);}'));
+ gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));
+ gl.useProgram(program);
+ projectionLoc=gl.getUniformLocation(program,'uProj');viewLoc=gl.getUniformLocation(program,'uView');
+ const verts=[
+  ...cube(-0.95,0,-2.15,0.65,[1,.24,.25]),
+  ...cube(0,0,-3.15,1.05,[.25,1,.44]),
+  ...cube(1.12,0,-4.2,1.1,[.25,.50,1])
+ ];
+ positionCount=verts.length/6;
+ const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
+ for(const [name,ofs] of [['aPos',0],['aColor',12]]){const loc=gl.getAttribLocation(program,name);gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,3,gl.FLOAT,false,24,ofs)}
+ gl.enable(gl.DEPTH_TEST);gl.clearColor(.035,.065,.12,1);
+}
+async function check(){
+ const lines=['HTTPS secure context: '+(isSecureContext?'YES':'NO'),'WebXR API: '+(navigator.xr?'YES':'NO')];
+ if(navigator.xr)for(const m of ['immersive-vr','immersive-ar'])try{const v=await navigator.xr.isSessionSupported(m);lines.push(m+': '+(v?'SUPPORTED':'NOT AVAILABLE'));if(m==='immersive-vr')btn.disabled=!v}catch(e){lines.push(m+': ERROR '+e.message)}
+ status.textContent=lines.join('\n');
+ note.textContent=btn.disabled?'Open this address in Meta Quest Browser to use VR.':'Headset support detected. Tap Enter VR to test depth.';
+}
+function render(t,frame){
+ if(!session)return;
+ session.requestAnimationFrame(render);
+ const pose=frame.getViewerPose(refSpace);if(!pose)return;
+ const layer=session.renderState.baseLayer;
+ gl.bindFramebuffer(gl.FRAMEBUFFER,layer.framebuffer);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);
+ for(const view of pose.views){
+  const vp=layer.getViewport(view);
+  gl.viewport(vp.x,vp.y,vp.width,vp.height);
+  gl.uniformMatrix4fv(projectionLoc,false,view.projectionMatrix);
+  gl.uniformMatrix4fv(viewLoc,false,view.transform.inverse.matrix);
+  gl.drawArrays(gl.TRIANGLES,0,positionCount);
+ }
+}
+btn.addEventListener('click',async()=>{
+ try{
+  btn.disabled=true;if(!gl)initialize();await gl.makeXRCompatible();
+  session=await navigator.xr.requestSession('immersive-vr');
+  session.addEventListener('end',()=>{session=null;btn.disabled=false;note.textContent='VR session ended; you can enter again.'});
+  session.updateRenderState({baseLayer:new XRWebGLLayer(session,gl)});
+  refSpace=await session.requestReferenceSpace('local');
+  note.textContent='Immersive VR started. Exit using the Quest system control.';
+  session.requestAnimationFrame(render);
+ }catch(e){status.textContent+='\nEnter VR error: '+e.message;note.textContent='VR launch failed.';btn.disabled=false}
+});
+check();
 </script></body></html>
