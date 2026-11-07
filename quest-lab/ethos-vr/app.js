@@ -404,10 +404,34 @@ canvas.addEventListener("click",()=>{if(!state.entered||vrSession)return;
  if(!isTouch&&!document.pointerLockElement&&canvas.requestPointerLock){canvas.requestPointerLock();return;}
  const a=desktopRay();interact(hitRay(a.origin,a.dir,3));});
 document.addEventListener("mousemove",e=>{if(!vrSession&&state.entered&&document.pointerLockElement===canvas){state.yaw-=e.movementX*.0022;state.pitch=Math.max(-1.25,Math.min(1.25,state.pitch-e.movementY*.0019));}});
-let lastTouch=null,joyTouch=null;
-canvas.addEventListener("touchstart",e=>{if(!state.entered||vrSession)return;for(const t of e.changedTouches){if(t.clientX<innerWidth*.42&&joyTouch===null){joyTouch=t.identifier;lastTouch={x:t.clientX,y:t.clientY};}else if(lastTouch===null)lastTouch={x:t.clientX,y:t.clientY,id:t.identifier};}},{passive:true});
-canvas.addEventListener("touchmove",e=>{if(!state.entered||vrSession)return;for(const t of e.changedTouches){if(t.identifier===joyTouch){motion.strafe=Math.max(-1,Math.min(1,(t.clientX-65)/70));motion.forward=Math.max(-1,Math.min(1,(innerHeight-140-t.clientY)/70));}else if(lastTouch&&t.identifier===lastTouch.id){state.yaw-=(t.clientX-lastTouch.x)*.004;state.pitch=Math.max(-1.25,Math.min(1.25,state.pitch-(t.clientY-lastTouch.y)*.003));lastTouch={x:t.clientX,y:t.clientY,id:t.identifier};}}},{passive:true});
-canvas.addEventListener("touchend",e=>{for(const t of e.changedTouches){if(t.identifier===joyTouch){joyTouch=null;motion.forward=motion.strafe=0;}if(lastTouch&&t.identifier===lastTouch.id)lastTouch=null;}},{passive:true});
+let lookTouch=null,joyTouch=null,joyOrigin=null;
+canvas.addEventListener("touchstart",e=>{
+ if(!state.entered||vrSession)return;
+ for(const t of e.changedTouches){
+  if(t.clientX<innerWidth*.43&&joyTouch===null){
+   joyTouch=t.identifier;joyOrigin={x:t.clientX,y:t.clientY};
+  }else if(lookTouch===null)lookTouch={id:t.identifier,x:t.clientX,y:t.clientY};
+ }
+},{passive:true});
+canvas.addEventListener("touchmove",e=>{
+ if(!state.entered||vrSession)return;
+ for(const t of e.changedTouches){
+  if(t.identifier===joyTouch&&joyOrigin){
+   motion.strafe=Math.max(-1,Math.min(1,(t.clientX-joyOrigin.x)/66));
+   motion.forward=Math.max(-1,Math.min(1,(joyOrigin.y-t.clientY)/66));
+  }else if(lookTouch&&t.identifier===lookTouch.id){
+   state.yaw-=(t.clientX-lookTouch.x)*.004;
+   state.pitch=Math.max(-1.25,Math.min(1.25,state.pitch-(t.clientY-lookTouch.y)*.003));
+   lookTouch={id:t.identifier,x:t.clientX,y:t.clientY};
+  }
+ }
+},{passive:true});
+function touchEnd(e){for(const t of e.changedTouches){
+ if(t.identifier===joyTouch){joyTouch=null;joyOrigin=null;motion.forward=motion.strafe=0;}
+ if(lookTouch&&t.identifier===lookTouch.id)lookTouch=null;
+}}
+canvas.addEventListener("touchend",touchEnd,{passive:true});
+canvas.addEventListener("touchcancel",touchEnd,{passive:true});
 $("interact").addEventListener("click",()=>{const ray=desktopRay();interact(hitRay(ray.origin,ray.dir,3.0));});
 window.addEventListener("unhandledrejection",e=>{console.warn("Promise error:",e.reason);});
 initVR();loadAssets();resize();
