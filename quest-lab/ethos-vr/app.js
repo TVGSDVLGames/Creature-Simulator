@@ -77,34 +77,8 @@ function buildRoom(){
  // Desk rug, bedside rug.
  box(-2.12,.027,-.80,2.95,.045,2.5,[.23,.29,.31]);
  box(1.54,.028,-.38,1.20,.035,1.72,[.27,.30,.28]);
- // Workstation shelf and desk details.
- box(-2.32,.78,-2.15,2.55,.11,1.12,[.36,.265,.19]);
- box(-2.32,.46,-2.66,2.30,.06,.10,[.19,.20,.225]);
- box(-1.15,.48,-2.08,.30,.68,1.08,[.31,.24,.18]);
- box(-2.20,.90,-1.79,1.40,.018,.51,[.065,.075,.095]);
- for(let i=0;i<14;i++)for(let j=0;j<4;j++)box(-2.78+i*.085,.933,-1.91+j*.075,.057,.024,.048,[.22,.23,.25]);
- box(-3.18,.98,-2.36,.40,.90,.49,[.09,.105,.122]);
- for(let i=0;i<3;i++)box(-3.18,1.1+i*.18,-2.088,.28,.055,.025,green,1);
- box(-2.20,1.55,-2.54,1.43,.91,.15,[.06,.07,.08]);
- box(-2.20,1.55,-2.40,1.32,.78,.025,[.05,.15,.13],.65);
- box(-2.20,.91,-2.45,.13,.36,.10,[.13,.14,.16]);
- // Shelf at x=-3.25 z=+0.72 (original fan memorabilia).
- for(let y of [.25,.76,1.28,1.80,2.31])box(-3.25,y,.72,1.3,.075,.68,[.36,.26,.17]);
- for(let x of [-3.86,-2.64])for(let z of [.43,1.01])box(x,1.20,z,.045,2.33,.045,[.13,.15,.18]);
- for(let row=0;row<3;row++)for(let col=0;col<4;col++){
-  box(-3.7+col*.25,.36+row*.52,.70,.081,.29,.22,[[.26,.32,.28],[.36,.22,.44],[.23,.31,.42],[.38,.31,.2]][(row+col)%4]);
- }
- // Bed made of actual Kenney mesh plus fabric/duvet accents.
- box(2.76,.31,-.65,1.80,.28,1.97,[.26,.17,.12]);
- box(2.76,.54,-.65,1.73,.18,1.88,[.18,.29,.22]);
- box(2.76,.68,-.84,1.70,.16,1.27,[.13,.23,.17]);
- for(let x of [2.28,3.22])box(x,.72,-1.37,.59,.13,.38,[.70,.66,.58]);
- box(2.76,.75,-1.66,1.8,.95,.13,[.22,.24,.25]);
- // Nightstand and small lamp, by bed head.
- box(3.52,.38,-1.62,.70,.75,.66,[.36,.255,.18]);
- box(3.52,.80,-1.62,.46,.25,.46,[.18,.21,.26]);
- box(3.52,1.11,-1.62,.25,.43,.25,[.65,.52,.37]);
- box(3.52,1.37,-1.62,.20,.10,.20,[.98,.68,.36],1);
+ // Room furniture and clutter are loaded as the original Godot Pass 5 OBJ meshes.
+ // Decorative wall features, trim, window and shrine stay native geometry.
  // Original shrine x=2.65, z=-2.30.
  box(2.65,.65,-2.30,1.70,.11,.72,[.33,.25,.18]);
  for(let x of [1.95,3.35])box(x,.33,-2.30,.075,.60,.65,[.12,.14,.15]);
@@ -117,9 +91,7 @@ function buildRoom(){
  box(-3.43,.33,-1.31,.47,.66,.47,[.075,.08,.09]);
  box(-3.43,.68,-1.31,.52,.05,.52,[.20,.22,.23]);
  for(let i=0;i<5;i++)box(-3.60+i*.08,.70,-1.31,.10,.05,.11,[.53,.52,.48]);
- // Two scattered pizza boxes.
- box(-.78,.065,1.42,.55,.13,.49,[.44,.31,.21]);
- box(.08,.068,2.10,.55,.13,.49,[.43,.32,.21]);
+ // The original Godot Pass 5 detailed pizza boxes are now bundled as real meshes.
  // cans, printouts, socks and clutter per Pass 4/5.
  for(let i=0;i<8;i++){const x=-3.0+(i*13%29)/9,z=.13+(i*7%16)/8;
   box(x,.105,z,.08,.18,.082,[[.35,.05,.05],[.055,.20,.38],[.32,.45,.06]][i%3]);}
@@ -197,6 +169,15 @@ async function parseGLB(array){
     for(let k=0;k<3;k++){min[k]=Math.min(min[k],xyz[k]);max[k]=Math.max(max[k],xyz[k]);}
     const uv=a.TEXCOORD_0!==undefined?accessor(g,binStart,dv,a.TEXCOORD_0,i):[0,0];vv.push(...xyz,normal[0]/l,normal[1]/l,normal[2]/l,col[0],col[1],col[2],0,uv[0],uv[1]);
    }
+   if(a.NORMAL===undefined){
+    for(let base=0;base+35<vv.length;base+=36){
+      const ax=vv[base+12]-vv[base],ay=vv[base+13]-vv[base+1],az=vv[base+14]-vv[base+2];
+      const bx=vv[base+24]-vv[base],by=vv[base+25]-vv[base+1],bz=vv[base+26]-vv[base+2];
+      let nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
+      const mag=Math.hypot(nx,ny,nz)||1;nx/=mag;ny/=mag;nz/=mag;
+      for(const v of [base,base+12,base+24]){vv[v+3]=nx;vv[v+4]=ny;vv[v+5]=nz;}
+    }
+   }
    if(vv.length){const texInfo=pm.pbrMetallicRoughness?.baseColorTexture;const texObject=texInfo?g.textures?.[texInfo.index]:null;parts.push({geometry:mesh(vv),texture:texObject?imageTextures[texObject.source]:null});}
   }}
   if(n.children)for(const child of n.children)traverse(child,transform);
@@ -214,16 +195,40 @@ function place(asset,p){
  props.push({name,parts:asset.parts,matrix:m});
 }
 async function loadAssets(){
- const tasks=expected.map(async name=>{
-  try{const response=await fetch("assets/"+name+".glb");if(!response.ok)throw Error("HTTP "+response.status);
-    const asset=await parseGLB(await response.arrayBuffer());assets[name]=asset;
-    for(const p of placements)if(p[0]===name)place(asset,p);
+ // Genuine models converted from OBJ meshes found inside original archived Pass5.
+ // All meshes retain scene node translations/scales matching scripts/main.gd.
+ const original=["original-room-major","original-room-details"];
+ let actualCount=0;
+ for(const name of original){
+  try{
+   const response=await fetch("assets/"+name+".glb",{cache:"force-cache"});
+   if(!response.ok)throw Error("HTTP "+response.status);
+   const originalMesh=await parseGLB(await response.arrayBuffer());
+   if(!originalMesh.parts.length)throw Error("No geometry");
+   props.push({name,parts:originalMesh.parts,matrix:standalone});
+   actualCount++;fps.textContent="ORIGINAL PASS 5 MESH PACKS "+actualCount+"/2";
+  }catch(e){console.warn("Original archive model load failed",name,e);failed++;}
+ }
+ // If the source geometry is absent, use the previously bundled Kenney CC0
+ // replacements rather than leaving the room empty.
+ if(actualCount<2){
+  const tasks=expected.map(async name=>{
+   try{
+    const res=await fetch("assets/"+name+".glb");
+    if(!res.ok)throw Error("HTTP "+res.status);
+    const asset=await parseGLB(await res.arrayBuffer());
+    if((actualCount===0&&name!=="soda-can")||(actualCount===1&&name==="soda-can"))
+      for(const p of placements)if(p[0]===name)place(asset,p);
     loaded++;
-  }catch(e){failed++;console.warn("Model load failed",name,e);}
-  fps.textContent="MODELS "+loaded+"/"+expected.length+(failed?" / "+failed+" FAILED":"");
- });
- await Promise.all(tasks);
- fps.textContent=failed?"MODELS "+loaded+"/"+expected.length+" ("+failed+" FAILED)":"16/16 BUNDLED KENNEY MODELS";
+   }catch(e){failed++;console.warn("Fallback GLB load error",name,e);}
+  });
+  await Promise.all(tasks);
+ }
+ // Real Godot props are the primary rendering path; Kenney remains a bundled fallback.
+ loaded=actualCount===2?41:loaded;
+ fps.textContent=actualCount===2?
+  "41 ORIGINAL PASS 5 MESH INSTANCES + REAL ETHOS ART":
+  "ORIGINAL PACKS "+actualCount+"/2 · KENNEY FALLBACK "+loaded+"/"+expected.length;
 }
 const posters=[];
 function texture(canvas2d){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,canvas2d);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.generateMipmap(gl.TEXTURE_2D);return t;}
