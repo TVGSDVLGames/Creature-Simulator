@@ -292,7 +292,7 @@ function loadOriginalArt(){
   panel(originals[4],2.65,1.72,-2.575,.82,.82/1.6);
   panel(originals[2],2.16,1.17,-2.575,.45,.45/1.6);
   panel(originals[5],3.12,1.17,-2.575,.45,.45/1.6);
-  fps.textContent="ORIGINAL PASS5 ART + "+loaded+"/"+expected.length+" MODELS";
+  pcAtlasImage=image;paintPcPanel();panel(originals[4],-2.20,1.55,-2.345,1.30,.73,0);fps.textContent="ORIGINAL PASS5 ART + "+loaded+"/"+expected.length+" MODELS";
  };
  image.onerror=()=>{console.error("Original art atlas failed to load");fps.textContent="ORIGINAL ART MISSING / MODELS "+loaded+"/"+expected.length;};
  image.src="assets/original-ethos-atlas.webp";
@@ -306,6 +306,7 @@ function buildPosters(){
 }
 buildPosters();
 const laserBuffer=gl.createBuffer();
+let pcState=0,pcTexture=null,pcPanelCanvas=null,pcPanelCtx=null,pcAtlasImage=null,pcChecks=0;
 const target=[
  {id:"pc",name:"PC / PLAY ETHOS",p:[-2.20,1.55,-2.40],r:.83},
  {id:"timer",name:"TIME SINCE ETHOS",p:[0,2.54,-2.84],r:.88},
@@ -332,10 +333,77 @@ let checks=0,interactionCount={},lastText="",captionUntil=0,sound=null;
 function audio(){if(sound)return;try{sound=new (window.AudioContext||window.webkitAudioContext)();const osc=sound.createOscillator(),gain=sound.createGain();osc.type="sine";osc.frequency.value=62;gain.gain.value=.007;osc.connect(gain);gain.connect(sound.destination);osc.start();}catch(e){console.warn(e);}}
 function beep(f=520){if(!sound)return;const o=sound.createOscillator(),v=sound.createGain(),now=sound.currentTime;o.type="triangle";o.frequency.setValueAtTime(f,now);o.frequency.exponentialRampToValueAtTime(f*.72,now+.10);v.gain.setValueAtTime(.038,now);v.gain.exponentialRampToValueAtTime(.0001,now+.16);o.connect(v);v.connect(sound.destination);o.start(now);o.stop(now+.18);}
 function say(s){lastText=s;caption.textContent=s;caption.classList.add("show");captionUntil=performance.now()+5100;beep(480);hudTextDirty=true;}
-function interact(hit){if(!hit){say("Nothing to interact with. The fan room is still very real.");return;}const id=hit.id;interactionCount[id]=(interactionCount[id]||0)+1;
- if(id==="PC"){checks++;say(checks===1?"CHECKING SERVERS... GAME OFFLINE!":checks===2?"STILL OFFLINE. Maybe press it harder?":"CHECK #"+checks+": The launcher remains deeply unimpressed.");}
- else{const a=lines[id];say(a[(interactionCount[id]-1)%a.length]);}
- if(lastSource?.gamepad){const h=lastSource.gamepad.hapticActuators?.[0]||lastSource.gamepad.vibrationActuator;if(h){try{if(h.pulse)h.pulse(.25,70);else if(h.playEffect)h.playEffect("dual-rumble",{duration:70,strongMagnitude:.25,weakMagnitude:.2});}catch(e){}}}
+function ensurePC(){
+ if(pcPanelCanvas)return;
+ [pcPanelCanvas,pcPanelCtx]=canvas2D(1024,512);
+ pcTexture=texture(pcPanelCanvas);
+}
+function paintPcPanel(){
+ ensurePC();
+ const c=pcPanelCtx;c.fillStyle="#0d1721";c.fillRect(0,0,1024,512);
+ c.fillStyle="#081017";c.fillRect(0,0,1024,65);
+ c.font="bold 27px sans-serif";c.fillStyle="#b7d1d0";c.fillText("STEAM   STORE   LIBRARY   COMMUNITY               ETHOSFAN3000",22,40);
+ if(pcState===2){
+  c.fillStyle="#081014";c.fillRect(25,90,974,389);
+  c.font="900 89px sans-serif";c.fillStyle="#a7ff42";c.textAlign="center";c.fillText("GAME OFFLINE!",512,223);
+  c.font="26px sans-serif";c.fillStyle="#e9eef0";c.fillText("There are no Project ETHOS servers to connect to.",512,280);
+  c.fillText("You knew this would happen. You clicked anyway.",512,325);
+  c.fillStyle="#274038";c.fillRect(267,392,490,59);c.font="bold 25px sans-serif";
+  c.fillStyle="#ddfae7";c.fillText("TRIGGER: CHECK AGAIN",512,431);
+  c.textAlign="start";
+ }else{
+  c.fillStyle="#173446";c.fillRect(22,82,614,311);
+  if(pcAtlasImage){c.drawImage(pcAtlasImage,0,144,256,144,22,82,614,311);}
+  c.fillStyle="#091019bf";c.fillRect(22,311,614,82);
+  c.fillStyle="#ffffff";c.font="900 51px sans-serif";c.fillText("PROJECT ETHOS",41,367);
+  c.fillStyle="#21303f";c.fillRect(666,82,338,310);
+  c.font="24px sans-serif";c.fillStyle="#d9e6e8";c.fillText("Third-person roguelike",691,137);
+  c.fillText("hero shooter",691,166);c.fillText("STATUS: OFFLINE",691,230);
+  c.fillText("LAST PLAYED: OCT 20, 2024",691,277);
+  c.fillText("OVERWHELMINGLY MISSED",691,338);
+  c.fillStyle="#378e2b";c.fillRect(23,408,380,69);c.fillStyle="#fff";
+  c.font="bold 36px sans-serif";c.fillText("▶  PLAY ETHOS",45,455);
+  c.font="22px sans-serif";c.fillStyle="#bad2d0";c.fillText("TRIGGER TO PLAY",656,451);
+ }
+ gl.bindTexture(gl.TEXTURE_2D,pcTexture);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,pcPanelCanvas);
+ gl.generateMipmap(gl.TEXTURE_2D);
+}
+function openPc(){
+ pcState=1;paintPcPanel();$("pcOffline").hidden=true;
+ if(!vrSession){$("pcOverlay").hidden=false;if(document.pointerLockElement===canvas)document.exitPointerLock();}
+ else say("PC OPEN — PULL TRIGGER TO PLAY ETHOS");
+ beep(720);
+}
+function closePc(){
+ pcState=0;$("pcOverlay").hidden=true;$("pcOffline").hidden=true;
+ if(vrSession)say("YOU KNEW THIS WOULD HAPPEN.");
+}
+function playPc(){
+ pcState=2;pcChecks++;paintPcPanel();$("pcOffline").hidden=false;
+ if(vrSession)say("GAME OFFLINE! YOU KNEW THIS WOULD HAPPEN. YOU CLICKED ANYWAY.");
+ beep(240);
+}
+function retryPc(){
+ pcState=1;paintPcPanel();$("pcOffline").hidden=true;
+ if(vrSession)say("REFRESHING HARDER HAS NOT HELPED.");
+}
+$("pcClose").onclick=()=>closePc();
+$("pcPlay").onclick=()=>playPc();
+$("pcRetry").onclick=()=>retryPc();
+function interact(hit){
+ if(pcState>0){
+  if(pcState===1)playPc();else retryPc();
+  return;
+ }
+ if(!hit){say("NO, THERE ARE NO NEW SERVERS TO CHECK.");return;}
+ const id=hit.id;interactionCount[id]=(interactionCount[id]||0)+1;
+ if(id==="pc"){openPc();return;}
+ const list=lines[id];say(list[(interactionCount[id]-1)%list.length]);
+ if(lastSource?.gamepad){
+  const h=lastSource.gamepad.hapticActuators?.[0]||lastSource.gamepad.vibrationActuator;
+  if(h)try{if(h.pulse)h.pulse(.25,70);else if(h.playEffect)h.playEffect("dual-rumble",{duration:70,strongMagnitude:.25,weakMagnitude:.2});}catch(e){}
+ }
 }
 function hitRay(origin,dir,distance=3.0){let closest=null,best=distance;
  for(const item of target){const delta=item.p.map((v,i)=>v-origin[i]);const t=delta[0]*dir[0]+delta[1]*dir[1]+delta[2]*dir[2];if(t<0||t>best)continue;const nx=delta[0]-dir[0]*t,ny=delta[1]-dir[1]*t,nz=delta[2]-dir[2]*t;if(nx*nx+ny*ny+nz*nz<item.r*item.r){closest=item;best=t;}}
@@ -355,6 +423,7 @@ function advance(dt,forward,strafe){if(Math.abs(forward)<.07)forward=0;if(Math.a
 }
 function tick(dt,frame){
  if(!state.entered)return;
+ if(pcState>0&&!vrSession)return;
  if(vrSession&&frame){
   headPose=frame.getViewerPose(vrRef);let f=0,s=0,turn=0;controllers=[];
   for(const input of vrSession.inputSources){
@@ -413,6 +482,13 @@ function draw(proj,view,head){
  }
  gl.useProgram(texP);gl.uniformMatrix4fv(tu.p,false,proj);gl.uniformMatrix4fv(tu.v,false,view);
  for(const p of posters)texDraw(p.texture,p.matrix);
+ if(vrSession&&head&&pcState>0){
+  const root=multiply(xrRoot(),head.transform.matrix);
+  const pcM=multiply(multiply(root,tr(0,-.01,-1.27)),sc(1.65,.83,1));
+  gl.disable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  texDraw(pcTexture,pcM);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);
+ }
+
  if(vrSession&&head&&captionUntil){
   if(hudTextDirty)updateHudPanel();
   const headWorld=multiply(xrRoot(),head.transform.matrix);
@@ -463,17 +539,19 @@ $("vr").onclick=async()=>{
     const ray=gazeXR();interact(ray?hitRay(ray.origin,ray.dir,3):null);
    }
   });
-  req.addEventListener("end",()=>{vrSession=null;headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
+  req.addEventListener("end",()=>{closePc();vrSession=null;headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
   showGame();touch.hidden=true;lastFrame=performance.now();req.requestAnimationFrame(xrFrame);
  }catch(e){status.textContent="VR START ERROR: "+e.message;console.error(e);$("vr").disabled=false;}
 };
 window.addEventListener("keydown",ev=>{key[ev.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(ev.code))ev.preventDefault();
+ if(pcState>0&&ev.code==="Escape"){closePc();return;}
  if(!vrSession&&state.entered&&(ev.code==="KeyE"||ev.code==="Space")){const a=desktopRay();interact(hitRay(a.origin,a.dir,3));}
  if(!vrSession&&ev.code==="Escape"&&state.entered){/* browser pointer unlock */}
  if(!vrSession&&state.entered&&ev.code==="KeyR"){state.x=.02;state.z=2.30;state.yaw=-.01745;state.pitch=-.07;say("You have reset the fan spiral.");}
 });
 window.addEventListener("keyup",ev=>key[ev.code]=false);
 canvas.addEventListener("click",()=>{if(!state.entered||vrSession)return;
+ if(pcState>0)return;
  if(!isTouch&&!document.pointerLockElement&&canvas.requestPointerLock){canvas.requestPointerLock();return;}
  const a=desktopRay();interact(hitRay(a.origin,a.dir,3));});
 document.addEventListener("mousemove",e=>{if(!vrSession&&state.entered&&document.pointerLockElement===canvas){state.yaw-=e.movementX*.0022;state.pitch=Math.max(-1.25,Math.min(1.25,state.pitch-e.movementY*.0019));}});
