@@ -20,22 +20,22 @@ function vector(m,p){return [m[0]*p[0]+m[4]*p[1]+m[8]*p[2],m[1]*p[0]+m[5]*p[1]+m
 function compile(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 function program(v,f){const p=gl.createProgram();gl.attachShader(p,compile(gl.VERTEX_SHADER,v));gl.attachShader(p,compile(gl.FRAGMENT_SHADER,f));gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));return p;}
 const meshP=program(
-"attribute vec3 aP,aN,aC;attribute float aE;uniform mat4 uP,uV,uM;varying vec3 vC;varying float vD;void main(){vec4 w=uM*vec4(aP,1.);vec3 n=normalize(mat3(uM)*aN);float sun=max(dot(n,normalize(vec3(-.55,.88,.52))),0.);float lamp=max(dot(n,normalize(vec3(.46,.68,-.52))),0.);float light=.31+.53*sun+.16*lamp;vC=aC*mix(light,1.08,aE);vD=length(w.xyz);gl_Position=uP*uV*w;}",
-"precision mediump float;varying vec3 vC;varying float vD;void main(){float fog=clamp((vD-8.)/12.,0.,.15);gl_FragColor=vec4(mix(vC,vec3(.055,.081,.125),fog),1.);}");
+"attribute vec3 aP,aN,aC;attribute float aE;attribute vec2 aUV;uniform mat4 uP,uV,uM;varying vec3 vC;varying float vD;varying vec2 vUV;void main(){vec4 w=uM*vec4(aP,1.);vec3 n=normalize(mat3(uM)*aN);float sun=max(dot(n,normalize(vec3(-.55,.88,.52))),0.);float lamp=max(dot(n,normalize(vec3(.46,.68,-.52))),0.);float light=.31+.53*sun+.16*lamp;vC=aC*mix(light,1.08,aE);vD=length(w.xyz);vUV=aUV;gl_Position=uP*uV*w;}",
+"precision mediump float;varying vec3 vC;varying float vD;varying vec2 vUV;uniform sampler2D uTexMesh;uniform float uHasTex;void main(){float fog=clamp((vD-8.)/12.,0.,.15);vec3 c=vC;if(uHasTex>.5)c*=texture2D(uTexMesh,vUV).rgb;gl_FragColor=vec4(mix(c,vec3(.055,.081,.125),fog),1.);}");
 const texP=program(
 "attribute vec3 aP;attribute vec2 aUV;uniform mat4 uP,uV,uM;varying vec2 vUV;void main(){vUV=aUV;gl_Position=uP*uV*uM*vec4(aP,1.);}",
 "precision mediump float;varying vec2 vUV;uniform sampler2D uTex;void main(){gl_FragColor=texture2D(uTex,vUV);}");
 function loc(p,n){return gl.getUniformLocation(p,n);}
-const mu={p:loc(meshP,"uP"),v:loc(meshP,"uV"),m:loc(meshP,"uM")},tu={p:loc(texP,"uP"),v:loc(texP,"uV"),m:loc(texP,"uM"),tex:loc(texP,"uTex")};
-const attrsMesh=["aP","aN","aC","aE"].map(n=>gl.getAttribLocation(meshP,n));
+const mu={p:loc(meshP,"uP"),v:loc(meshP,"uV"),m:loc(meshP,"uM"),has:loc(meshP,"uHasTex"),tex:loc(meshP,"uTexMesh")},tu={p:loc(texP,"uP"),v:loc(texP,"uV"),m:loc(texP,"uM"),tex:loc(texP,"uTex")};
+const attrsMesh=["aP","aN","aC","aE","aUV"].map(n=>gl.getAttribLocation(meshP,n));
 const attrsTex=["aP","aUV"].map(n=>gl.getAttribLocation(texP,n));
 const posterQuad=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,posterQuad);
 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([
 -.5,-.5,0,0,0,.5,-.5,0,1,0,.5,.5,0,1,1,
 -.5,-.5,0,0,0,.5,.5,0,1,1,-.5,.5,0,0,1]),gl.STATIC_DRAW);
 gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.clearColor(.045,.065,.095,1);
-function mesh(data){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);return {buffer:b,count:data.length/10};}
-function meshDraw(g,m){gl.bindBuffer(gl.ARRAY_BUFFER,g.buffer);for(let i=0;i<4;i++){gl.enableVertexAttribArray(attrsMesh[i]);gl.vertexAttribPointer(attrsMesh[i],i===3?1:3,gl.FLOAT,false,40,i===0?0:i===1?12:i===2?24:36);}gl.uniformMatrix4fv(mu.m,false,m);gl.drawArrays(gl.TRIANGLES,0,g.count);}
+function mesh(data){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);return {buffer:b,count:data.length/12};}
+function meshDraw(g,m,tex){gl.bindBuffer(gl.ARRAY_BUFFER,g.buffer);for(let i=0;i<5;i++){gl.enableVertexAttribArray(attrsMesh[i]);gl.vertexAttribPointer(attrsMesh[i],i===3?1:i===4?2:3,gl.FLOAT,false,48,[0,12,24,36,40][i]);}gl.uniformMatrix4fv(mu.m,false,m);gl.uniform1f(mu.has,tex?1:0);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex||null);gl.uniform1i(mu.tex,0);gl.drawArrays(gl.TRIANGLES,0,g.count);}
 function texDraw(t,m){gl.bindBuffer(gl.ARRAY_BUFFER,posterQuad);gl.enableVertexAttribArray(attrsTex[0]);gl.vertexAttribPointer(attrsTex[0],3,gl.FLOAT,false,20,0);gl.enableVertexAttribArray(attrsTex[1]);gl.vertexAttribPointer(attrsTex[1],2,gl.FLOAT,false,20,12);gl.uniformMatrix4fv(tu.m,false,m);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(tu.tex,0);gl.drawArrays(gl.TRIANGLES,0,6);}
 const roomV=[];
 function box(x,y,z,w,h,d,color,emit=0){
@@ -48,7 +48,7 @@ function box(x,y,z,w,h,d,color,emit=0){
  [[b[0],a[1],b[2]],[b[0],a[1],a[2]],[b[0],b[1],a[2]],[b[0],b[1],b[2]],[1,0,0]],
  [[a[0],a[1],a[2]],[a[0],a[1],b[2]],[a[0],b[1],b[2]],[a[0],b[1],a[2]],[-1,0,0]]
  ];
- for(const f of faces)for(const i of [0,1,2,0,2,3])roomV.push(...f[i],...f[4],...color,emit);
+ for(const f of faces)for(const i of [0,1,2,0,2,3])roomV.push(...f[i],...f[4],...color,emit,0,0);
 }
 function buildRoom(){
  box(0,-.09,0,7.7,.18,7.7,[.28,.19,.16]);
@@ -124,12 +124,25 @@ function accessor(g,binStart,dv,id,j){
  out.push(v);}
  return out;
 }
-function parseGLB(array){
+async function parseGLB(array){
  const dv=new DataView(array);if(dv.getUint32(0,true)!==0x46546c67)throw Error("Invalid GLB");
  let p=12,g=null,binStart=0;
  while(p<array.byteLength){const n=dv.getUint32(p,true),type=dv.getUint32(p+4,true);p+=8;if(type===0x4e4f534a){g=JSON.parse(new TextDecoder().decode(new Uint8Array(array,p,n)));}else if(type===0x004e4942)binStart=p;p+=n;}
  if(!g||!binStart)throw Error("GLB missing JSON or mesh");
  const parts=[],min=[1e9,1e9,1e9],max=[-1e9,-1e9,-1e9];
+ const imageTextures=await Promise.all((g.images||[]).map(async im=>{
+  if(im.bufferView===undefined)return null;
+  const bv=g.bufferViews[im.bufferView],imgBuffer=new Uint8Array(array,binStart+(bv.byteOffset||0),bv.byteLength);
+  try{
+   const image=await createImageBitmap(new Blob([imgBuffer],{type:im.mimeType||"image/png"}));
+   const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);image.close();return t;
+  }catch(e){console.warn("GLB image decode failed",e);return null;}
+ }));
  function traverse(id,parent){
   const n=g.nodes[id],pos=n.translation||[0,0,0],q=n.rotation||[0,0,0,1],sz=n.scale||[1,1,1];
   const matrix=n.matrix?new Float32Array(n.matrix):multiply(multiply(tr(...pos),quat(...q)),sc(...sz));
@@ -146,9 +159,9 @@ function parseGLB(array){
     const normal=a.NORMAL!==undefined?vector(transform,accessor(g,binStart,dv,a.NORMAL,i)):[0,1,0];
     const l=Math.hypot(...normal)||1;
     for(let k=0;k<3;k++){min[k]=Math.min(min[k],xyz[k]);max[k]=Math.max(max[k],xyz[k]);}
-    vv.push(...xyz,normal[0]/l,normal[1]/l,normal[2]/l,col[0],col[1],col[2],0);
+    const uv=a.TEXCOORD_0!==undefined?accessor(g,binStart,dv,a.TEXCOORD_0,i):[0,0];vv.push(...xyz,normal[0]/l,normal[1]/l,normal[2]/l,col[0],col[1],col[2],0,uv[0],uv[1]);
    }
-   if(vv.length)parts.push(mesh(vv));
+   if(vv.length){const texInfo=pm.pbrMetallicRoughness?.baseColorTexture;const texObject=texInfo?g.textures?.[texInfo.index]:null;parts.push({geometry:mesh(vv),texture:texObject?imageTextures[texObject.source]:null});}
   }}
   if(n.children)for(const child of n.children)traverse(child,transform);
  }
@@ -167,7 +180,7 @@ function place(asset,p){
 async function loadAssets(){
  const tasks=expected.map(async name=>{
   try{const response=await fetch("assets/"+name+".glb");if(!response.ok)throw Error("HTTP "+response.status);
-    const asset=parseGLB(await response.arrayBuffer());assets[name]=asset;
+    const asset=await parseGLB(await response.arrayBuffer());assets[name]=asset;
     for(const p of placements)if(p[0]===name)place(asset,p);
     loaded++;
   }catch(e){failed++;console.warn("Model load failed",name,e);}
@@ -219,6 +232,7 @@ function buildPosters(){
  createClock();panel(clockTex,1.90,2.24,-3.734,1.40,.69,0);
 }
 buildPosters();
+const laserBuffer=gl.createBuffer();
 const target=[
  {id:"PC",name:"CHECK THE PC",p:[.35,1.23,-2.56],r:.56},
  {id:"CLOCK",name:"INSPECT THE TIMER",p:[1.9,2.20,-3.66],r:.63},
@@ -263,7 +277,7 @@ function currentRay(){return vrSession?gazeXR():desktopRay();}
 function blocked(x,z){if(Math.abs(x)>3.39||Math.abs(z)>3.35)return true;if(x>-3.5&&x<-1.05&&z>-.98&&z<.81)return true;if(x>-.9&&x<1.4&&z<-2.32)return true;if(x>2.0&&z<-2.0)return true;return false;}
 function advance(dt,forward,strafe){if(Math.abs(forward)<.07)forward=0;if(Math.abs(strafe)<.07)strafe=0;
  const speed=Math.min(2.0,2.35*dt),a=state.yaw,dx=(-Math.sin(a)*forward+Math.cos(a)*strafe)*speed,dz=(-Math.cos(a)*forward-Math.sin(a)*strafe)*speed;
- if(!blocked(state.x+dx,state.z))state.x+=dx;else if(!blocked(state.x+dx,state.z))state.x+=dx;
+ if(!blocked(state.x+dx,state.z))state.x+=dx;
  if(!blocked(state.x,state.z+dz))state.z+=dz;
 }
 function tick(dt,frame){
@@ -311,7 +325,19 @@ function updateHudPanel(){const g=hudTextCanvas.getContext("2d");g.clearRect(0,0
 function draw(proj,view,head){
  gl.useProgram(meshP);gl.uniformMatrix4fv(mu.p,false,proj);gl.uniformMatrix4fv(mu.v,false,view);
  meshDraw(roomG,standalone);
- for(const p of props)for(const part of p.parts)meshDraw(part,p.matrix);
+ for(const p of props)for(const part of p.parts)meshDraw(part.geometry,p.matrix,part.texture);
+ if(vrSession&&controllers.length){
+  const rays=[];for(const ctr of controllers){
+   const hit=hitRay(ctr.origin,ctr.dir,3.0);
+   const len=hit?Math.min(3,Math.hypot(...hit.p.map((v,i)=>v-ctr.origin[i]))):2.1;
+   const end=ctr.origin.map((v,i)=>v+ctr.dir[i]*len);
+   for(const p of [ctr.origin,end])rays.push(...p,0,1,0,.28,1,.89,1,0,0);
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER,laserBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(rays),gl.DYNAMIC_DRAW);
+  gl.uniformMatrix4fv(mu.m,false,standalone);gl.uniform1f(mu.has,0);
+  for(let i=0;i<5;i++){gl.enableVertexAttribArray(attrsMesh[i]);gl.vertexAttribPointer(attrsMesh[i],i===3?1:i===4?2:3,gl.FLOAT,false,48,[0,12,24,36,40][i]);}
+  gl.lineWidth(2);gl.drawArrays(gl.LINES,0,rays.length/12);
+ }
  gl.useProgram(texP);gl.uniformMatrix4fv(tu.p,false,proj);gl.uniformMatrix4fv(tu.v,false,view);
  for(const p of posters)texDraw(p.texture,p.matrix);
  if(vrSession&&head&&captionUntil){
