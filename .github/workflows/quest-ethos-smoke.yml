@@ -77,12 +77,21 @@ jobs:
         if: success()
         shell: bash
         run: |
+          set -euo pipefail
+          # Only commit a screenshot if the exact tested source is still HEAD.
+          # Other pushes must never overwrite previews with older screenshots.
+          TEST_SHA="$(git rev-parse HEAD)"
+          git fetch origin main
+          CURRENT_SHA="$(git rev-parse origin/main)"
+          if [ "$TEST_SHA" != "$CURRENT_SHA" ]; then
+            echo "Skipping outdated preview; newer commit exists ($CURRENT_SHA)."
+            exit 0
+          fi
           git config user.name 'Quest Build Preview Bot'
           git config user.email 'quest-build-preview-bot@users.noreply.github.com'
           git add quest-lab/ethos-vr/preview/browser-build.png
           if ! git diff --cached --quiet; then
             git commit -m 'Capture actual Quest Ethos WebGL build screenshot [skip ci]'
-            git pull --rebase origin main
             git push origin HEAD:main
           fi
       - name: Report test artifacts
