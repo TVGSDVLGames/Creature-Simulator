@@ -27,7 +27,7 @@ jobs:
           python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ethos-http.log 2>&1 &
           echo "$!" >/tmp/ethos-server.pid
           sleep 2
-          curl -fsS http://127.0.0.1:8765/quest-lab/ethos-vr/ >/tmp/ethos-index.html
+          curl -fsS http://127.0.0.1:8765/quest-lab/ethos-vr/?preview=1 >/tmp/ethos-index.html
           grep -q 'FAN SIMULATOR' /tmp/ethos-index.html
       - name: Real WebGL render plus asset loader verification
         shell: bash
@@ -42,7 +42,7 @@ jobs:
            page.on("pageerror",e=>errors.push(String(e)));
            page.on("console",msg=>{if(msg.type()==="error")errors.push("console "+msg.text());});
            page.on("requestfailed",request=>errors.push("network "+request.url()+": "+request.failure()?.errorText));
-           const url="http://127.0.0.1:8765/quest-lab/ethos-vr/";
+           const url="http://127.0.0.1:8765/quest-lab/ethos-vr/?preview=1";
            await page.goto(url,{waitUntil:"domcontentloaded"});
            await page.waitForFunction(()=>document.querySelector("#fps")?.textContent.includes("ORIGINAL PASS"),{timeout:50000}).catch(()=>{});
            await page.waitForTimeout(5000);
