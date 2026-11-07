@@ -7,7 +7,7 @@ on:
       - '.github/workflows/quest-vr-browser-smoke.yml'
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
