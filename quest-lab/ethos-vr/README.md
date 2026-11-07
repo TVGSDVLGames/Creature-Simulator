@@ -1,48 +1,39 @@
-# PROJECT ETHOS Fan Simulator — Quest 3 Stereoscopic VR Build 02
+# Project ETHOS Fan Simulator — Quest 3 Stereoscopic WebXR, Build 03
 
-**Quest Browser:** https://tvgsdvlgames.github.io/Creature-Simulator/quest-lab/ethos-vr/
+**Open in Quest Browser:** https://tvgsdvlgames.github.io/Creature-Simulator/quest-lab/ethos-vr/
 
-## Recovered actual source, November 6, 2026
-Recovered the exact 95,875,014-byte Library file:
-ProjectEthosFanSimulator_PASS5_TITLE_HUMOR_GODOT.zip
+## Source recovered and reused
 
-The original Godot 4.7.1 project was inside ProjectEthosFanSimulator/.
-The original archive contains scripts/main.gd (53,062 bytes), scripts/fan_controller.gd,
-~44 custom OBJ props, real ETHOS screenshots, synthesized fan-room audio, PBR materials,
-the Pass5 title, Steam-like fake PC launcher, captioned joke interactions and the timer.
+The actual 95,875,014-byte project in the user's ChatGPT Library was found:
 
-This WebXR edition is **an actual port of the contents of that archive**:
-- 41 original Pass5 OBJ *instances*, converted and bundled in two GLB files with
-  the source's original node positions, model orientations and scales.
-- Six original ETHOS screenshots from assets/ethos bundled as one WebP 3x2 atlas.
-- The original Pass5 room_hum, ui_click and server_denied sounds, transcoded to Opus.
-- Rebuilt 8 x 6 meter room, 14-slat back wall, left-window blinds, real timer placement,
-  shrine, props, and PC location copied from scripts/main.gd.
-- Exact Pass5 humor captions and functional fake launcher/offline/retry interactions.
-- 16 extra Kenney CC0 GLB models remain bundled as fallback if the original model packs fail.
-- True two-eye WebXR binocular rendering: per-eye view/projection, 6DoF headset
-  tracking, Quest controller aim/trigger, thumbstick locomotion and snap turning.
-- Desktop (WASD/mouse/E) and phone browser fallback; these are not VR.
+`ProjectEthosFanSimulator_PASS5_TITLE_HUMOR_GODOT.zip`
 
-Total original GLB binary bytes: 2,087,604 (major 858,016 and details 1,229,588).
-Original screenshot atlas: 18,832 bytes, optimized down from the original images.
-Original audio is the archived Pass5 recordings compressed for the web.
+The archive contains the complete original Godot 4.x project, including `scripts/main.gd`, `scripts/fan_controller.gd`, detailed custom OBJ models, PBR material maps, six authentic Project ETHOS press/gameplay images, synthesized fan-room audio, joke interactions and the title menu.
 
-## Quest controls
-Open link in Meta Quest Browser and choose **ENTER STEREOSCOPIC VR**.
-Left stick: move, right stick: 30° snap turn, trigger: interact with highlighted
-physical objects. PC interaction opens an in-headset Steam-style panel:
-trigger once to PLAY ETHOS -> GAME OFFLINE, trigger again to check again.
-Quest system control exits VR.
+The **active WebXR build** includes:
+- 41 original source OBJ instances, rebuilt as two local GLB asset files (~2.09 MB combined), preserving Godot positioning/scale.
+- Full-resolution optimized versions of all **six original screenshots** in `source_visuals.tar.gz`; older low-res source atlas retained as fallback.
+- The original wall, wood floor, carpet and other albedo textures optimized for browser rendering, also in `source_visuals.tar.gz`.
+- All three original synthesized sounds as web-optimized Opus files.
+- Rebuilt 8×6-meter room, physical window blinds, slatted workstation wall, clock location, PC and shrine placement from the source script.
+- Fake Steam-style in-world launcher (PC, PLAY ETHOS, GAME OFFLINE, retry), source joke dialogue, clock and interacting with furniture.
+- Two distinct WebXR views, headset motion, Quest controller pointer/trigger, left-stick locomotion and right-stick snap turn.
+- Desktop and mobile browser fallback modes. These are **not** stereoscopic VR.
+- 16 additional local Kenney CC0 GLB models as backup if source geometry cannot be loaded.
 
-## Provenance
-The archived Godot Pass5 source has original procedural prop OBJ models, not
-AI concept art; the original source already included a KayKit CC0 pictureframe.
-Kenney CC0 fallback models are from https://github.com/Hidencod/tge-assets.
-No engine binary is shipped. Fan parody, not affiliated with 2K or 31st Union.
+The newly uploaded `original_assets.tar.gz` also preserves a separate 42-object GLB conversion directly from the archive, alongside the unmodified screenshot contents, textures and audio. It is a source/reference pack; the lighter two-GLB runtime geometry is used for speed.
+
+## Controls
+On a Quest 3 open the link in **Meta Quest Browser** and choose **ENTER STEREOSCOPIC VR**. Left stick moves, right stick snap-turns (30°), trigger interacts. Trigger on the computer to open the fake launcher; trigger to PLAY ETHOS and see the offline response, then trigger to retry. Quest system button exits.
+
+Desktop: Begin Coping, WASD, mouse movement, E to interact, R to reset. Mobile: left touch drag moves, right touch drag turns, INTERACT button selects.
 
 ## Verification
-- Source ZIP found and inspected by filename, manifest, source scripts, and size.
-- Original binary props, images and audio transferred to GitHub and SHA verified.
-- JavaScript parsed without syntax errors.
-- **Public GitHub Pages serving and Quest 3 physical hardware are not yet verified.**
+- Exact archived source was located and examined, not recreated from guesses.
+- Original WebXR code parses as JavaScript.
+- GitHub uploads for code, original GLB geometry, screenshots, textures and audio have been confirmed.
+- Added an automated GitHub Actions browser screenshot/WebGL smoke test under `.github/workflows/quest-vr-browser-smoke.yml`.
+- Quest 3 stereo, actual headset controller mapping and physical-device frame rate remain **unverified until tested on the headset**.
+
+## Legal / attribution
+Unofficial fan parody, not affiliated with 2K or 31st Union. Source contains gameplay/press screenshots. Models and sounds are from the user's archived fan project. Fallback assets: Kenney CC0 via https://github.com/Hidencod/tge-assets.
