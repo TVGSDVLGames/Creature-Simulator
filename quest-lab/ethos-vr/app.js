@@ -478,7 +478,7 @@ const state={x:.02,z:2.30,yaw:-.01745,pitch:-.07,eye:1.68,entered:false,last:per
 let vrSession=null,vrRef=null,refFloor=true,lastSource=null,headPose=null,controllers=[],frameN=0,standalone=I();
 let vrFocus=null,vrFocusID="";
 const questQA={version:"meta-webxr-audit-04",session:"idle",sessionCount:0,
- referenceSpace:null,eyes:0,eyeLabels:[],eyeOffsets:[],viewportWidths:[],
+ referenceSpace:null,eyes:0,eyeLabels:[],eyeOffsets:[],headPosition:null,viewportWidths:[],
  xrFrames:0,trackedPoseFrames:0,controllers:0,inputProfiles:[],
  frameRate:null,supportedFrameRates:[],fixedFoveation:null,frameMs:0,
  error:null,emulator:!!window.__ethosMetaEmulator,contextLost:false};
@@ -609,6 +609,7 @@ function xrFrame(t,frame){if(!vrSession)return;vrSession.requestAnimationFrame(x
  questQA.eyes=headPose.views.length;
  questQA.eyeLabels=headPose.views.map(eye=>eye.eye);
  questQA.eyeOffsets=headPose.views.map(eye=>[eye.transform.position.x,eye.transform.position.y,eye.transform.position.z]);
+ questQA.headPosition=[headPose.transform.position.x,headPose.transform.position.y,headPose.transform.position.z];
  questQA.frameMs=questQA.frameMs?questQA.frameMs*.91+dt*1000*.09:dt*1000;
  questQA.controllers=vrSession.inputSources.length;
  questQA.inputProfiles=Array.from(vrSession.inputSources,src=>({hand:src.handedness,profiles:[...src.profiles],gamepad:!!src.gamepad}));
