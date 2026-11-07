@@ -336,7 +336,7 @@ async function loadSourceVisuals(){
  posters.push({texture:floorTex,matrix:multiply(multiply(tr(0,.022,0),rx(-Math.PI/2)),sc(8,6,1))});
  posters.push({texture:rugTex,matrix:multiply(multiply(tr(-2.12,.048,-.80),rx(-Math.PI/2)),sc(2.95,2.5,1))});
  const art=new Image(),blobUrl=URL.createObjectURL(new Blob([files["04.webp"]],{type:"image/webp"}));art.src=blobUrl;await art.decode();
- pcAtlasImage=art;paintPcPanel();
+ pcAtlasImage=art;paintPcPanel();$("pcHero").style.backgroundImage="url("+blobUrl+")";$("pcHero").style.backgroundSize="cover";$("pcHero").style.backgroundPosition="center";
  menu.style.backgroundImage="linear-gradient(90deg,rgba(1,6,14,.96),rgba(5,12,22,.70)),url('"+blobUrl+"')";
  menu.style.backgroundSize="cover";menu.style.backgroundPosition="center";
  fps.textContent="PASS5 SOURCE: 6 HIGH-RES POSTERS + 41 MODEL INSTANCES";
@@ -419,7 +419,7 @@ function paintPcPanel(){
   c.textAlign="start";
  }else{
   c.fillStyle="#173446";c.fillRect(22,82,614,311);
-  if(pcAtlasImage){if(pcAtlasImage.width>768)c.drawImage(pcAtlasImage,0,0,pcAtlasImage.width,pcAtlasImage.height,22,82,614,311);else c.drawImage(pcAtlasImage,0,144,256,144,22,82,614,311);}
+  if(pcAtlasImage){if(pcAtlasImage.height>288)c.drawImage(pcAtlasImage,0,0,pcAtlasImage.width,pcAtlasImage.height,22,82,614,311);else c.drawImage(pcAtlasImage,0,144,256,144,22,82,614,311);}
   c.fillStyle="#091019bf";c.fillRect(22,311,614,82);
   c.fillStyle="#ffffff";c.font="900 51px sans-serif";c.fillText("PROJECT ETHOS",41,367);
   c.fillStyle="#21303f";c.fillRect(666,82,338,310);
