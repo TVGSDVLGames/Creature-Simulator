@@ -596,7 +596,12 @@ function xrFrame(t,frame){if(!vrSession)return;vrSession.requestAnimationFrame(x
  }
 }
 function showGame(){state.entered=true;menu.classList.add("closed");if(isTouch&&!vrSession)touch.hidden=false;audio();lastFrame=performance.now();}
-$("explore").onclick=()=>{showGame();if(!isTouch&&canvas.requestPointerLock)canvas.requestPointerLock();};
+$("explore").onclick=()=>{
+ showGame();
+ const preview=new URLSearchParams(location.search).has("preview");
+ if(preview){state.x=.02;state.z=2.30;state.yaw=0;state.pitch=-.18;}
+ else if(!isTouch&&canvas.requestPointerLock)canvas.requestPointerLock();
+};
 $("servers").onclick=()=>{checks++;status.textContent="CHECK #"+checks+" : THE FAN SIMULATOR'S FAKE LAUNCHER IS STILL OFFLINE.";beep(360);};
 async function initVR(){
  if(!navigator.xr||!isSecureContext){$("vr").textContent="VR REQUIRES QUEST BROWSER";$("vr").disabled=true;status.textContent="WebXR unavailable here. Browser mode remains playable.";return;}
