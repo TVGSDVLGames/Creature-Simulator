@@ -9,7 +9,7 @@ permissions:
   contents: write
 jobs:
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
       - name: Install browser test runtime
         shell: bash
         run: |
-          npm --prefix /tmp/ethos-playwright install --no-audit --no-fund playwright@1.55.0
+          npm --prefix /tmp/ethos-playwright install --no-audit --no-fund playwright@1.56.1
           /tmp/ethos-playwright/node_modules/.bin/playwright install --with-deps chromium
       - name: Serve the exact committed Quest app
         shell: bash
