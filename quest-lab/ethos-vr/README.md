@@ -37,3 +37,20 @@ Desktop: Begin Coping, WASD, mouse movement, E to interact, R to reset. Mobile: 
 
 ## Legal / attribution
 Unofficial fan parody, not affiliated with 2K or 31st Union. Source contains gameplay/press screenshots. Models and sounds are from the user's archived fan project. Fallback assets: Kenney CC0 via https://github.com/Hidencod/tge-assets.
+
+## Meta Quest 3 official WebXR emulation test (Nov 7, 2026)
+
+The production application still uses native WebXR/WebGL directly, not the IWSDK ECS runtime. It has now been tested against Meta Platforms' official Immersive Web Emulation Runtime (IWER) v2.8.0, using the Meta Quest 3 headset model. This is an emulator test, not certification or an on-device performance result.
+
+References:
+- Meta official IWER: https://github.com/meta-quest/immersive-web-emulation-runtime
+- Meta official WebXR First Steps: https://github.com/meta-quest/webxr-first-steps
+- Meta IWSDK development guidance: https://github.com/meta-quest/agentic-tools/tree/main/skills/hz-iwsdk-webxr
+
+GitHub Actions runs .github/workflows/quest-ethos-meta-iwer.yml using test code in tests/ and playwright@1.56.1, iwer@2.8.0. It injects Meta Quest 3 emulation in the test browser; the emulator is NOT part of the hosted build.
+
+Verified: immersive-vr session, separate left/right XRViews and viewports, IPD 64mm, headset 6DoF tracking, local-floor reference space, both Touch Plus controllers, thumbstick movement (0.525m), snap-turn (30 degrees), trigger selectstart event, zero browser console errors.
+
+Real Quest Browser testing and headset-specific performance profiling remain necessary. An optional diagnostic mode is available by appending ?questqa=1 to the playable URL; this exposes window.__ETHOS_QUEST_QA in the Quest Browser DevTools console with XR view, tracking, controller, frame-rate and WebGL diagnostic data.
+
+CI evidence: https://github.com/TVGSDVLGames/Creature-Simulator/actions/workflows/quest-ethos-meta-iwer.yml
