@@ -51,70 +51,106 @@ function box(x,y,z,w,h,d,color,emit=0){
  for(const f of faces)for(const i of [0,1,2,0,2,3])roomV.push(...f[i],...f[4],...color,emit,0,0);
 }
 function buildRoom(){
- box(0,-.09,0,7.7,.18,7.7,[.28,.19,.16]);
- for(let i=0;i<29;i++){const z=-3.68+i*.263;box(0,.016,z,7.58,.035,.240,[i%3===0?.38:.34,i%3===0?.245:.218,.18]);}
- box(0,1.55,-3.83,7.7,3.1,.13,[.21,.267,.32]);
- box(0,1.55,3.83,7.7,3.1,.13,[.17,.225,.277]);
- box(-3.83,1.55,0,.13,3.1,7.7,[.18,.24,.29]);
- box(3.83,1.55,0,.13,3.1,7.7,[.18,.24,.29]);
- box(0,3.13,0,7.7,.13,7.7,[.16,.196,.246]);
- for(let x of [-3.72,3.72]){box(x,.11,0,.10,.22,7.55,[.34,.35,.38]);box(x,2.98,0,.11,.07,7.55,[.31,.35,.39]);}
- for(let z of [-3.72,3.72]){box(0,.11,z,7.55,.22,.10,[.34,.35,.38]);box(0,2.98,z,7.55,.07,.1,[.31,.35,.39]);}
- // Striped back workstation accent
- for(let i=0;i<19;i++)box(-.95+i*.125,1.52,-3.725,.048,2.60,.08,[.145,.195,.235]);
- // window with blinds on right wall
- box(3.71,1.96,.83,.06,1.65,1.95,[.086,.14,.20]);
- box(3.65,1.96,.83,.055,1.52,1.83,[.24,.42,.52]);
- for(let j=0;j<10;j++)box(3.59,1.26+j*.145,.83,.03,.035,1.86,[.52,.58,.59]);
- box(3.56,1.96,-.16,.085,1.72,.045,[.44,.41,.39]);box(3.56,1.96,1.81,.085,1.72,.045,[.44,.41,.39]);
- // Rug and under desk lights
- box(-1.72,.047,.10,2.8,.02,2.45,[.24,.30,.34]);
- for(let i=0;i<8;i++)box(-2.85+i*.33,.061,.10,.045,.004,2.27,[.37,.43,.46]);
- box(.19,.46,-3.14,2.23,.035,.10,[.17,.86,.78],1);
- // Physical door
- box(2.25,1.19,3.72,1.45,2.35,.055,[.27,.29,.32]);
- box(2.90,1.17,3.64,.10,.06,.12,[.85,.73,.45]);
- for(let i=0;i<3;i++)box(2.23,1.78-i*.34,3.655,1.14,.045,.04,[.35,.375,.39]);
- // Ceiling and lamp emissive
- box(.3,3.015,-.6,1.2,.06,.35,[.58,.92,.89],1);
- box(-2.76,2.91,-2.6,.18,.05,.18,[1,.75,.47],1);
- // LED strip shelf highlights
- box(2.92,1.46,-3.51,1.05,.03,.12,[.34,.93,.85],1);
- // Wooden trim on back shelf
- for(let y of [.42,1.08,1.74,2.40])box(2.84,y,-3.37,1.13,.06,.39,[.19,.14,.12]);
- // Low table, trash, shrine
- box(1.85,.39,.40,.98,.10,.78,[.19,.24,.29]);for(let x of [1.44,2.26])for(let z of [.06,.74])box(x,.20,z,.07,.35,.07,[.12,.17,.20]);
- box(2.63,.26,1.84,.41,.51,.42,[.17,.23,.26]);
- box(2.63,.525,1.84,.41,.04,.42,[.37,.49,.50]);
- box(-3.53,1.42,-.78,.32,1.4,1.08,[.16,.24,.27]);
- for(let y of [.78,1.30,1.82,2.10])box(-3.31,y,-.78,.38,.055,1.02,[.32,.25,.18]);
- box(-3.32,1.84,-.80,.1,.18,.11,[.9,.52,.25],1);
- box(-3.32,1.83,-.54,.1,.18,.11,[.9,.52,.25],1);
- // Loose box stacks, cables, empty cups
- box(-.88,.12,2.34,.50,.24,.45,[.30,.245,.16]);
- box(-.92,.30,2.28,.34,.05,.41,[.39,.31,.21]);
- box(2.15,.09,2.80,.31,.18,.28,[.22,.22,.25]);
- for(let i=0;i<4;i++)box(2.52,1.12+i*.05,-3.10,.32,.035,.20,[.22+i*.04,.41-i*.02,.48-i*.03]);
+ // Geometry adapted from the original 95,875,014-byte Godot Pass 5 archive.
+ // 8m x 6m room; rear wall z=-3, workstation x=-2.32, bed x=2.76.
+ const wall=[.17,.18,.20],oak=[.27,.17,.11],trim=[.08,.085,.095],green=[.38,.93,.18];
+ box(0,-.11,0,8,.22,6,[.34,.245,.17]);
+ for(let i=0;i<26;i++){const z=-2.85+i*.227;box(0,.014,z,7.80,.024,.20,[.26+(i%3)*.023,.172+(i%3)*.014,.11+(i%3)*.008]);}
+ box(0,1.55,-3,8,3.1,.16,wall);
+ box(0,1.55,3,8,3.1,.16,wall);
+ box(-4,1.55,0,.16,3.1,6,wall);
+ box(4,1.55,0,.16,3.1,6,wall);
+ box(0,3.05,0,8,.12,6,[.31,.32,.34]);
+ // Real baseboards and crown moldings.
+ for(const z of [-2.88,2.88]){box(0,.095,z,7.8,.19,.085,oak);box(0,2.94,z,7.8,.10,.09,trim);}
+ for(const x of [-3.88,3.88]){box(x,.095,0,.085,.19,5.8,oak);box(x,2.94,0,.09,.10,5.8,trim);}
+ // P4 slat feature wall behind desk, 14 solid wooden slats.
+ box(-2.28,1.48,-2.875,2.45,2.62,.035,[.055,.061,.070]);
+ for(let i=0;i<14;i++)box(-3.38+i*.17,1.48,-2.835,.075,2.52,.055,[.36,.25,.18]);
+ // Dark glass and blinds, left wall, z=2.05.
+ const wx=-3.885,wz=2.05;
+ box(wx,1.62,wz,.025,1.34,1.34,[.033,.056,.078],.25);
+ for(const dy of [-.72,.72])box(wx+.025,1.62+dy,wz,.07,.09,1.52,trim);
+ for(const dz of [-.72,.72])box(wx+.025,1.62,wz+dz,.07,1.52,.09,trim);
+ box(wx+.032,1.62,wz,.075,1.38,.055,trim);
+ for(let i=0;i<10;i++)box(wx+.055,1.08+i*.115,wz,.031,.025,1.22,[.42,.43,.44]);
+ // Desk rug, bedside rug.
+ box(-2.12,.027,-.80,2.95,.045,2.5,[.23,.29,.31]);
+ box(1.54,.028,-.38,1.20,.035,1.72,[.27,.30,.28]);
+ // Workstation shelf and desk details.
+ box(-2.32,.78,-2.15,2.55,.11,1.12,[.36,.265,.19]);
+ box(-2.32,.46,-2.66,2.30,.06,.10,[.19,.20,.225]);
+ box(-1.15,.48,-2.08,.30,.68,1.08,[.31,.24,.18]);
+ box(-2.20,.90,-1.79,1.40,.018,.51,[.065,.075,.095]);
+ for(let i=0;i<14;i++)for(let j=0;j<4;j++)box(-2.78+i*.085,.933,-1.91+j*.075,.057,.024,.048,[.22,.23,.25]);
+ box(-3.18,.98,-2.36,.40,.90,.49,[.09,.105,.122]);
+ for(let i=0;i<3;i++)box(-3.18,1.1+i*.18,-2.088,.28,.055,.025,green,1);
+ box(-2.20,1.55,-2.54,1.43,.91,.15,[.06,.07,.08]);
+ box(-2.20,1.55,-2.40,1.32,.78,.025,[.05,.15,.13],.65);
+ box(-2.20,.91,-2.45,.13,.36,.10,[.13,.14,.16]);
+ // Shelf at x=-3.25 z=+0.72 (original fan memorabilia).
+ for(let y of [.25,.76,1.28,1.80,2.31])box(-3.25,y,.72,1.3,.075,.68,[.36,.26,.17]);
+ for(let x of [-3.86,-2.64])for(let z of [.43,1.01])box(x,1.20,z,.045,2.33,.045,[.13,.15,.18]);
+ for(let row=0;row<3;row++)for(let col=0;col<4;col++){
+  box(-3.7+col*.25,.36+row*.52,.70,.081,.29,.22,[[.26,.32,.28],[.36,.22,.44],[.23,.31,.42],[.38,.31,.2]][(row+col)%4]);
+ }
+ // Bed made of actual Kenney mesh plus fabric/duvet accents.
+ box(2.76,.31,-.65,1.80,.28,1.97,[.26,.17,.12]);
+ box(2.76,.54,-.65,1.73,.18,1.88,[.18,.29,.22]);
+ box(2.76,.68,-.84,1.70,.16,1.27,[.13,.23,.17]);
+ for(let x of [2.28,3.22])box(x,.72,-1.37,.59,.13,.38,[.70,.66,.58]);
+ box(2.76,.75,-1.66,1.8,.95,.13,[.22,.24,.25]);
+ // Nightstand and small lamp, by bed head.
+ box(3.52,.38,-1.62,.70,.75,.66,[.36,.255,.18]);
+ box(3.52,.80,-1.62,.46,.25,.46,[.18,.21,.26]);
+ box(3.52,1.11,-1.62,.25,.43,.25,[.65,.52,.37]);
+ box(3.52,1.37,-1.62,.20,.10,.20,[.98,.68,.36],1);
+ // Original shrine x=2.65, z=-2.30.
+ box(2.65,.65,-2.30,1.70,.11,.72,[.33,.25,.18]);
+ for(let x of [1.95,3.35])box(x,.33,-2.30,.075,.60,.65,[.12,.14,.15]);
+ box(2.65,1.4,-2.68,1.75,1.45,.08,[.035,.04,.045]);
+ for(let x of [2.03,2.28,3.02,3.28])box(x,.98,-2.36,.070,.48,.070,green,1);
+ for(let i=0;i<5;i++)box(2.15+i*.25,.83,-2.25,.16,.26,.16,i%2?[.63,.06,.95]:green,1);
+ // Timer at x=0,z=-2.845; steel enclosure.
+ box(0,2.54,-2.84,3,.72,.10,[.075,.10,.115]);
+ // Trash at original x=-3.43,z=-1.31.
+ box(-3.43,.33,-1.31,.47,.66,.47,[.075,.08,.09]);
+ box(-3.43,.68,-1.31,.52,.05,.52,[.20,.22,.23]);
+ for(let i=0;i<5;i++)box(-3.60+i*.08,.70,-1.31,.10,.05,.11,[.53,.52,.48]);
+ // Two scattered pizza boxes.
+ box(-.78,.065,1.42,.55,.13,.49,[.44,.31,.21]);
+ box(.08,.068,2.10,.55,.13,.49,[.43,.32,.21]);
+ // cans, printouts, socks and clutter per Pass 4/5.
+ for(let i=0;i<8;i++){const x=-3.0+(i*13%29)/9,z=.13+(i*7%16)/8;
+  box(x,.105,z,.08,.18,.082,[[.35,.05,.05],[.055,.20,.38],[.32,.45,.06]][i%3]);}
+ for(let i=0;i<6;i++)box(-2.9+(i*11%23)/8,.018,.28+(i*5%14)/7,.35,.01,.45,[.62,.60,.54]);
+ // Door toward player's starting position.
+ box(2.22,1.18,2.89,1.4,2.38,.08,[.19,.23,.26]);
+ box(2.76,1.12,2.81,.13,.06,.13,[.85,.75,.44]);
+ // Physical light fixture at ceiling.
+ box(.25,2.89,.30,.35,.13,.35,[.75,.59,.40],1);
+ // Per original source, no floating world text.
 }
 buildRoom();const roomG=mesh(roomV);
 let assets={},props=[],loaded=0,failed=0;const expected=["beddouble","desk","chairdesk","computerscreen","computerkeyboard","computermouse","bookcaseopen","lamproundfloor","plantsmall2","sidetabledrawers","tablecoffeesquare","loungedesignchair","pizza-box","soda-can","cup-coffee","pizza"];
 const placements=[
- ["beddouble",-2.30,.06,-.50,2.20,0],
- ["desk",.32,.04,-2.85,1.95,Math.PI],
- ["chairdesk",.55,.03,-1.47,.77,0],
- ["computerscreen",.35,.82,-2.82,.78,Math.PI],
- ["computerkeyboard",.30,.77,-2.22,.64,Math.PI],
- ["computermouse",.87,.77,-2.20,.12,Math.PI],
- ["bookcaseopen",2.78,.04,-2.75,.86,Math.PI/2],
- ["lamproundfloor",-3.14,.03,-2.62,.38,0],
- ["plantsmall2",2.76,.86,-2.84,.31,0],
- ["sidetabledrawers",-3.22,.05,-1.90,.62,Math.PI/2],
- ["tablecoffeesquare",1.68,.02,1.04,.88,.1],
- ["loungedesignchair",2.92,.04,1.28,.73,Math.PI],
- ["pizza-box",1.86,.45,.46,.55,0],
- ["soda-can",1.65,.48,.32,.13,0],
- ["cup-coffee",.86,.76,-2.63,.17,0],
- ["pizza",1.89,.52,.46,.38,0]
+ ["beddouble",2.76,.02,-.65,1.80,0],
+ ["desk",-2.32,.02,-2.15,2.64,0],
+ ["chairdesk",-2.20,.02,-.91,.88,Math.PI],
+ ["computerscreen",-2.20,1.09,-2.45,1.42,0],
+ ["computerkeyboard",-2.22,.92,-1.74,1.03,0],
+ ["computermouse",-1.54,.91,-1.71,.15,0],
+ ["bookcaseopen",-3.25,.01,.72,1.29,0],
+ ["lamproundfloor",3.52,.03,-1.62,.4,0],
+ ["plantsmall2",-3.46,.89,-1.90,.18,0],
+ ["sidetabledrawers",3.52,.03,-1.62,.67,0],
+ ["tablecoffeesquare",2.65,.03,-2.30,1.63,0],
+ ["loungedesignchair",-2.20,.03,-.91,.83,Math.PI],
+ ["pizza-box",-.78,.03,1.42,.58,0],
+ ["pizza-box",.08,.03,2.10,.58,.1],
+ ["soda-can",-.36,.12,1.1,.1,0],
+ ["cup-coffee",-1.47,.89,-2.06,.20,0],
+ ["pizza",-.76,.155,1.44,.48,0]
 ];
 function accessor(g,binStart,dv,id,j){
  const a=g.accessors[id],bv=g.bufferViews[a.bufferView];const types={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16};const sizes={5120:1,5121:1,5122:2,5123:2,5125:4,5126:4},count=types[a.type],size=sizes[a.componentType];
@@ -216,10 +252,10 @@ function createClock(){const v=canvas2D(512,256);clockCanvas=v[0];clockContext=v
 function updateClock(){
  if(!clockContext)return;const g=clockContext;g.fillStyle="#091923";g.fillRect(0,0,512,256);
  g.lineWidth=6;g.strokeStyle="#67d9cd";g.strokeRect(8,8,496,240);g.fillStyle="#86ffdf";g.font="900 23px monospace";g.fillText("TIME SINCE ETHOS",28,49);
- const ms=Math.max(0,Date.now()-Date.UTC(2024,9,21));const days=Math.floor(ms/86400000);const hours=Math.floor(ms/3600000)%24;const mins=Math.floor(ms/60000)%60;
+ const ms=Math.max(0,Date.now()-1729490400000);const days=Math.floor(ms/86400000);const hours=Math.floor(ms/3600000)%24;const mins=Math.floor(ms/60000)%60;
  g.fillStyle="#f3f7ff";g.font="900 69px monospace";g.fillText(String(days)+"d "+String(hours).padStart(2,"0")+"h",26,139);
  g.fillStyle="#d7b89d";g.font="22px monospace";g.fillText(String(mins).padStart(2,"0")+"m since Oct 2024 reveal",27,180);
- g.fillStyle="#8ca6b8";g.font="16px monospace";g.fillText("FAN-MADE COUNTER // NOT SERVER STATUS",28,221);
+ g.fillStyle="#8ca6b8";g.font="16px monospace";g.fillText("PLAYTEST ENDED OCT 20, 2024 (PDT)",28,221);
  gl.bindTexture(gl.TEXTURE_2D,clockTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,clockCanvas);gl.generateMipmap(gl.TEXTURE_2D);
 }
 function panel(tex,x,y,z,w,h,rot=0){posters.push({texture:tex,matrix:multiply(multiply(tr(x,y,z),ry(rot)),sc(w,h,1))});}
@@ -234,26 +270,26 @@ function buildPosters(){
 buildPosters();
 const laserBuffer=gl.createBuffer();
 const target=[
- {id:"PC",name:"CHECK THE PC",p:[.35,1.23,-2.56],r:.56},
- {id:"CLOCK",name:"INSPECT THE TIMER",p:[1.9,2.20,-3.66],r:.63},
- {id:"BED",name:"LIE DOWN AND COPE",p:[-2.3,.55,-.5],r:1.2},
- {id:"SHRINE",name:"EXAMINE THE SHRINE",p:[-3.35,1.55,-.7],r:.86},
- {id:"PIZZA",name:"INSPECT THE PIZZA",p:[1.86,.56,.46],r:.68},
- {id:"TRASH",name:"LOOK IN THE TRASH",p:[2.63,.4,1.84],r:.55},
- {id:"POSTER",name:"ADMIRE THE POSTER",p:[-3.57,1.94,.38],r:.85},
- {id:"SHELF",name:"EXAMINE THE COLLECTION",p:[2.79,1.43,-2.76],r:.95},
- {id:"DOOR",name:"TRY TO LEAVE",p:[2.25,1.30,3.67],r:.85}
+ {id:"pc",name:"PC / PLAY ETHOS",p:[-2.20,1.55,-2.40],r:.83},
+ {id:"timer",name:"TIME SINCE ETHOS",p:[0,2.54,-2.84],r:.88},
+ {id:"bed",name:"BED",p:[2.76,.68,-.65],r:1.07},
+ {id:"shrine",name:"ETHOS SHRINE",p:[2.65,1.16,-2.30],r:.95},
+ {id:"pizza",name:"PIZZA",p:[-.40,.20,1.72],r:.89},
+ {id:"trash",name:"TRASH",p:[-3.43,.45,-1.31],r:.69},
+ {id:"poster",name:"ETHOS POSTER",p:[-3.81,1.89,-.9],r:.85},
+ {id:"shelf",name:"SHELF",p:[-3.25,1.2,.72],r:.88},
+ {id:"door",name:"EXIT",p:[2.22,1.3,2.87],r:.91}
 ];
 const lines={
- PC:["PLAY ETHOS... NETWORK ERROR. Try again?","Still offline on this PC. You have refreshed 1,000 times.","The launcher has become a meditation app."],
- CLOCK:["It's been a while since the October 2024 reveal.","Another minute closer to playing again. Probably."],
- BED:["You've spent more time here than you have in Trials.","The dreams are in third person, for some reason."],
- SHRINE:["A tasteful little shrine to a playtest.","The candles are doing more work than matchmaking."],
- PIZZA:["Pizza from the last playtest. Do not eat.","Some Evolutions have no cure for food poisoning."],
- TRASH:["Discarded patch predictions. All 987 of them.","You find a crumpled note: 'SOON'."],
- POSTER:["PRISM. The character still gets a wall spot.","You've researched the entire roster. Again."],
- SHELF:["The memorabilia has outgrown the furniture.","You called this 'a modest collection'."],
- DOOR:["Outside? But the servers could come back any second.","The door opens to the real world. You decline."]
+ pc:["PLAY ETHOS", "GAME OFFLINE!"],
+ timer:["NO, STARING AT IT DOES NOT MAKE THE NUMBER SMALLER."],
+ bed:["SLEEP? WITH ETHOS STILL OFFLINE? BE SERIOUS."],
+ shrine:["A COMPLETELY NORMAL AMOUNT OF MEMORABILIA."],
+ pizza:["FRESHNESS STATUS: ALSO OFFLINE."],
+ trash:["ARCHAEOLOGISTS WILL DATE THIS LAYER TO THE FIRST PLAYTEST."],
+ poster:["EXPLAIN WHY THE MOVEMENT WAS PEAK TO ABSOLUTELY NOBODY."],
+ shelf:["A COMPLETELY NORMAL AMOUNT OF MEMORABILIA."],
+ door:["QUIT TO REAL LIFE? THERE IS NO BACKUP SAVE."]
 };
 let checks=0,interactionCount={},lastText="",captionUntil=0,sound=null;
 function audio(){if(sound)return;try{sound=new (window.AudioContext||window.webkitAudioContext)();const osc=sound.createOscillator(),gain=sound.createGain();osc.type="sine";osc.frequency.value=62;gain.gain.value=.007;osc.connect(gain);gain.connect(sound.destination);osc.start();}catch(e){console.warn(e);}}
@@ -267,14 +303,14 @@ function interact(hit){if(!hit){say("Nothing to interact with. The fan room is s
 function hitRay(origin,dir,distance=3.0){let closest=null,best=distance;
  for(const item of target){const delta=item.p.map((v,i)=>v-origin[i]);const t=delta[0]*dir[0]+delta[1]*dir[1]+delta[2]*dir[2];if(t<0||t>best)continue;const nx=delta[0]-dir[0]*t,ny=delta[1]-dir[1]*t,nz=delta[2]-dir[2]*t;if(nx*nx+ny*ny+nz*nz<item.r*item.r){closest=item;best=t;}}
  return closest;}
-const state={x:.18,z:1.91,yaw:0,pitch:-.07,eye:1.68,entered:false,last:performance.now(),snapArmed:true};
+const state={x:.02,z:2.30,yaw:-.01745,pitch:-.07,eye:1.68,entered:false,last:performance.now(),snapArmed:true};
 let vrSession=null,vrRef=null,refFloor=true,lastSource=null,headPose=null,controllers=[],frameN=0,standalone=I();
 const key={},motion={forward:0,strafe:0},touch=$("touch");
 function desktopRay(){return {origin:[state.x,state.eye,state.z],dir:[-Math.sin(state.yaw)*Math.cos(state.pitch),Math.sin(state.pitch),-Math.cos(state.yaw)*Math.cos(state.pitch)]};}
 function xrRoot(){return multiply(tr(state.x,refFloor?0:state.eye,state.z),ry(state.yaw));}
 function gazeXR(){if(!headPose)return null;const m=multiply(xrRoot(),headPose.transform.matrix);return {origin:point(m,[0,0,0]),dir:vector(m,[0,0,-1])};}
 function currentRay(){return vrSession?gazeXR():desktopRay();}
-function blocked(x,z){if(Math.abs(x)>3.39||Math.abs(z)>3.35)return true;if(x>-3.5&&x<-1.05&&z>-.98&&z<.81)return true;if(x>-.9&&x<1.4&&z<-2.32)return true;if(x>2.0&&z<-2.0)return true;return false;}
+function blocked(x,z){if(Math.abs(x)>3.68||Math.abs(z)>2.68)return true;if(x>1.6&&x<3.7&&z>-1.88&&z<.6)return true;if(x>-3.7&&x<-.89&&z<-1.27)return true;if(x>1.73&&z<-1.8)return true;return false;}
 function advance(dt,forward,strafe){if(Math.abs(forward)<.07)forward=0;if(Math.abs(strafe)<.07)strafe=0;
  const speed=Math.min(2.0,2.35*dt),a=state.yaw,dx=(-Math.sin(a)*forward+Math.cos(a)*strafe)*speed,dz=(-Math.cos(a)*forward-Math.sin(a)*strafe)*speed;
  if(!blocked(state.x+dx,state.z))state.x+=dx;
@@ -397,7 +433,7 @@ $("vr").onclick=async()=>{
 window.addEventListener("keydown",ev=>{key[ev.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(ev.code))ev.preventDefault();
  if(!vrSession&&state.entered&&(ev.code==="KeyE"||ev.code==="Space")){const a=desktopRay();interact(hitRay(a.origin,a.dir,3));}
  if(!vrSession&&ev.code==="Escape"&&state.entered){/* browser pointer unlock */}
- if(!vrSession&&state.entered&&ev.code==="KeyR"){state.x=.18;state.z=1.91;state.yaw=0;state.pitch=-.07;say("You have reset the fan spiral.");}
+ if(!vrSession&&state.entered&&ev.code==="KeyR"){state.x=.02;state.z=2.30;state.yaw=-.01745;state.pitch=-.07;say("You have reset the fan spiral.");}
 });
 window.addEventListener("keyup",ev=>key[ev.code]=false);
 canvas.addEventListener("click",()=>{if(!state.entered||vrSession)return;
