@@ -25,7 +25,7 @@ jobs:
             const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
             const page=await browser.newPage({viewport:{width:1280,height:720},deviceScaleFactor:1});
             const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error') errors.push(msg.text())});
-            await page.goto('http://127.0.0.1:8765/quest-lab/ethos-vr/',{waitUntil:'networkidle'});
+            await page.goto('http://127.0.0.1:8765/quest-lab/ethos-vr/?preview=1',{waitUntil:'networkidle'});
             await page.waitForTimeout(7000);
             const before=await page.locator('#fps').innerText();
             await page.locator('#explore').click();
