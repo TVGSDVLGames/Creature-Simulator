@@ -479,7 +479,7 @@ let vrSession=null,vrRef=null,refFloor=true,lastSource=null,headPose=null,contro
 let vrFocus=null,vrFocusID="";
 const questQA={version:"meta-webxr-audit-04",session:"idle",sessionCount:0,
  referenceSpace:null,eyes:0,eyeLabels:[],eyeOffsets:[],headPosition:null,viewportWidths:[],
- xrFrames:0,trackedPoseFrames:0,controllers:0,inputProfiles:[],
+ xrFrames:0,trackedPoseFrames:0,controllers:0,inputProfiles:[],player:null,selectEvents:0,lastSelectHand:null,
  frameRate:null,supportedFrameRates:[],fixedFoveation:null,frameMs:0,
  error:null,emulator:!!window.__ethosMetaEmulator,contextLost:false};
 window.__ETHOS_QUEST_QA=questQA;
@@ -535,6 +535,7 @@ function tick(dt,frame){
  }else{
   advance(dt,(key.KeyW||key.ArrowUp?1:0)-(key.KeyS||key.ArrowDown?1:0)+motion.forward,(key.KeyD?1:0)-(key.KeyA?1:0)+motion.strafe);
  }
+ questQA.player=[state.x,state.z,state.yaw];
  const control=vrSession?(controllers.find(c=>c.hand==="right")||controllers[0]):null;
  const ray=control?{origin:control.origin,dir:control.dir}:currentRay();
  const h=ray&&hitRay(ray.origin,ray.dir,3.0);
@@ -664,6 +665,8 @@ $("vr").onclick=async()=>{
   vrSession=req;questQA.session="running";
   vrSession.addEventListener("selectstart",ev=>{
    lastSource=ev.inputSource;
+   questQA.selectEvents++;
+   questQA.lastSelectHand=ev.inputSource.handedness;
    const pose=ev.frame.getPose(ev.inputSource.targetRaySpace,vrRef);
    if(pose){const m=multiply(xrRoot(),pose.transform.matrix);interact(hitRay(point(m,[0,0,0]),vector(m,[0,0,-1]),3.0));}else{
     const ray=gazeXR();interact(ray?hitRay(ray.origin,ray.dir,3):null);
