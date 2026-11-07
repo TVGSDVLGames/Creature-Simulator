@@ -1,0 +1,49 @@
+name: Quest WebXR browser smoke test
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'quest-lab/ethos-vr/**'
+      - '.github/workflows/quest-vr-browser-smoke.yml'
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Test original assets and capture actual browser rendering
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/ethos-web.log 2>&1 &
+          node - <<'NODE'
+          const { chromium }=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
+            const page=await browser.newPage({viewport:{width:1280,height:720},deviceScaleFactor:1});
+            const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',msg=>{if(msg.type()==='error') errors.push(msg.text())});
+            await page.goto('http://127.0.0.1:8765/quest-lab/ethos-vr/',{waitUntil:'networkidle'});
+            await page.waitForTimeout(7000);
+            const before=await page.locator('#fps').innerText();
+            await page.locator('#explore').click();
+            await page.waitForTimeout(4000);
+            await page.screenshot({path:'quest-vr-browser.png'});
+            const gl=await page.evaluate(()=>{const c=document.querySelector('#scene');const g=c.getContext('webgl');const a=new Uint8Array(4);g.readPixels(Math.floor(c.width/2),Math.floor(c.height/2),1,1,g.RGBA,g.UNSIGNED_BYTE,a);return {canvas:[c.width,c.height],centerPixel:Array.from(a),webgl:!!g};});
+            const result={before,gl,errors};
+            require('fs').writeFileSync('quest-vr-report.json',JSON.stringify(result,null,2));
+            console.log(JSON.stringify(result,null,2));
+            await browser.close();
+            if(!gl.webgl||errors.some(e=>/Uncaught|Error:|GLB|WebGL.*failed/i.test(e)))process.exitCode=1;
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quest-vr-browser-smoke
+          path: |
+            quest-vr-browser.png
+            quest-vr-report.json
+          if-no-files-found: warn
