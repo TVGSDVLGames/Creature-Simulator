@@ -1,0 +1,52 @@
+name: Meta Quest 3 WebXR IWER conformance
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "quest-lab/ethos-vr/app.js"
+      - "quest-lab/ethos-vr/index.html"
+      - "quest-lab/ethos-vr/assets/**"
+      - "quest-lab/ethos-vr/source_visuals.tar.gz"
+      - "quest-lab/ethos-vr/tests/**"
+      - ".github/workflows/quest-ethos-meta-iwer.yml"
+permissions:
+  contents: read
+jobs:
+  meta-quest3-emulation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install official Meta IWER and Chromium tooling
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/ethos-iwer
+          npm --prefix /tmp/ethos-iwer install --no-audit --no-fund iwer@2.8.0 playwright@1.56.1 esbuild@0.25.12
+          /tmp/ethos-iwer/node_modules/.bin/playwright install --with-deps chromium
+      - name: Bundle official Meta Quest 3 emulator harness (tests only)
+        run: |
+          set -euxo pipefail
+          cp quest-lab/ethos-vr/tests/meta-iwer-bootstrap.js /tmp/ethos-iwer/meta-iwer-bootstrap.js
+          /tmp/ethos-iwer/node_modules/.bin/esbuild /tmp/ethos-iwer/meta-iwer-bootstrap.js \
+            --bundle --format=iife --platform=browser \
+            --outfile=/tmp/ethos-iwer/meta-iwer-bootstrap.bundle.js
+          cp quest-lab/ethos-vr/tests/meta-iwer-smoke.cjs /tmp/ethos-iwer/meta-iwer-smoke.cjs
+      - name: Meta Quest 3 stereo, input, 6DoF and XR render test
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ethos-meta-http.log 2>&1 &
+          sleep 3
+          curl -fsS http://localhost:8765/quest-lab/ethos-vr/index.html >/dev/null
+          node /tmp/ethos-iwer/meta-iwer-smoke.cjs
+      - name: Save actual automated XR evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meta-quest3-iwer-test
+          path: |
+            /tmp/ethos-iwer/meta-iwer-result.json
+            /tmp/ethos-iwer/meta-iwer-quest3.png
+            /tmp/ethos-meta-http.log
+          if-no-files-found: ignore
