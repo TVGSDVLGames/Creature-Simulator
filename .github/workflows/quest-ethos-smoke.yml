@@ -44,7 +44,7 @@ jobs:
            page.on("requestfailed",request=>errors.push("network "+request.url()+": "+request.failure()?.errorText));
            const url="http://127.0.0.1:8765/quest-lab/ethos-vr/?preview=1";
            await page.goto(url,{waitUntil:"domcontentloaded"});
-           await page.waitForFunction(()=>document.querySelector("#fps")?.textContent.includes("ORIGINAL PASS"),{timeout:50000}).catch(()=>{});
+           await page.waitForFunction(()=>document.querySelector("#fps")?.textContent.includes("41 MODEL INSTANCES"),null,{timeout:50000}).catch(()=>{});
            await page.waitForTimeout(5000);
            const before=await page.locator("#fps").textContent();
            const support=await page.evaluate(()=>{
@@ -52,7 +52,7 @@ jobs:
              return {webgl:!!g,vertices:g?.getParameter(g.MAX_VERTEX_ATTRIBS),canvas:[c.width,c.height],status:document.querySelector("#fps").textContent};
            });
            if(!support.webgl)throw new Error("Canvas WebGL failed");
-           if(!before.includes("ORIGINAL PASS"))throw new Error("Original geometry did not load: "+before);
+           if(!before.includes("41 MODEL INSTANCES"))throw new Error("Original geometry did not load: "+before);
            const art=await page.evaluate(async()=>{
              const r=await fetch("source_visuals.tar.gz");
              return {ok:r.ok,size:(await r.arrayBuffer()).byteLength};
