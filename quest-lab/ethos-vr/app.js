@@ -464,7 +464,7 @@ function interact(hit){
  }
  if(!hit){say("NO, THERE ARE NO NEW SERVERS TO CHECK.");return;}
  const id=hit.id;interactionCount[id]=(interactionCount[id]||0)+1;
- if(id==="pc"){openPc();return;}
+ if(id==="PC"){openPc();return;}
  const list=lines[id];say(list[(interactionCount[id]-1)%list.length]);
  if(lastSource?.gamepad){
   const h=lastSource.gamepad.hapticActuators?.[0]||lastSource.gamepad.vibrationActuator;
@@ -476,6 +476,7 @@ function hitRay(origin,dir,distance=3.0){let closest=null,best=distance;
  return closest;}
 const state={x:.02,z:2.30,yaw:-.01745,pitch:-.07,eye:1.68,entered:false,last:performance.now(),snapArmed:true};
 let vrSession=null,vrRef=null,refFloor=true,lastSource=null,headPose=null,controllers=[],frameN=0,standalone=I();
+let vrFocus=null,vrFocusID="";
 const key={},motion={forward:0,strafe:0},touch=$("touch");
 function desktopRay(){return {origin:[state.x,state.eye,state.z],dir:[-Math.sin(state.yaw)*Math.cos(state.pitch),Math.sin(state.pitch),-Math.cos(state.yaw)*Math.cos(state.pitch)]};}
 function xrRoot(){return multiply(tr(state.x,refFloor?0:state.eye,state.z),ry(state.yaw));}
@@ -506,7 +507,7 @@ function tick(dt,frame){
    if(input.handedness==="left"){f=-sy;s=sx;}
    if(input.handedness==="right")turn=sx;
    const pp=frame.getPose(input.targetRaySpace,vrRef);
-   if(pp){const m=multiply(xrRoot(),pp.transform.matrix);const d=vector(m,[0,0,-1]);controllers.push({m,origin:point(m,[0,0,0]),end:point(m,[0,0,-2]),dir:d});}
+   if(pp){const m=multiply(xrRoot(),pp.transform.matrix);const d=vector(m,[0,0,-1]);controllers.push({hand:input.handedness,m,origin:point(m,[0,0,0]),end:point(m,[0,0,-2]),dir:d});}
   }
   if(Math.abs(turn)>.72&&state.snapArmed){state.yaw+=Math.sign(turn)*Math.PI/6;state.snapArmed=false;}
   if(Math.abs(turn)<.27)state.snapArmed=true;
@@ -518,8 +519,15 @@ function tick(dt,frame){
  }else{
   advance(dt,(key.KeyW||key.ArrowUp?1:0)-(key.KeyS||key.ArrowDown?1:0)+motion.forward,(key.KeyD?1:0)-(key.KeyA?1:0)+motion.strafe);
  }
- const ray=currentRay();const h=ray&&hitRay(ray.origin,ray.dir,3.0);
- if(!vrSession){hint.textContent=h?"[ E ] "+h.name:"";}else{hint.textContent="";}
+ const control=vrSession?(controllers.find(c=>c.hand==="right")||controllers[0]):null;
+ const ray=control?{origin:control.origin,dir:control.dir}:currentRay();
+ const h=ray&&hitRay(ray.origin,ray.dir,3.0);
+ if(vrSession){
+  vrFocus=h;
+  const focus=h?.id||"";
+  if(vrFocusID!==focus){vrFocusID=focus;hudTextDirty=true;}
+  hint.textContent="";
+ }else hint.textContent=h?"[ E ] "+h.name:"";
  if(captionUntil&&performance.now()>captionUntil){caption.classList.remove("show");captionUntil=0;hudTextDirty=true;}
  frameN++;if(frameN%140===0)updateClock();
 }
@@ -527,11 +535,11 @@ let hudTextCanvas,hudTex,hudTextDirty=true;
 function createHudPanel(){const x=canvas2D(1024,256);hudTextCanvas=x[0];hudTex=texture(x[0]);}
 createHudPanel();
 function updateHudPanel(){const g=hudTextCanvas.getContext("2d");g.clearRect(0,0,1024,256);
- if(!captionUntil)return;
+ if(!captionUntil&&!vrFocus)return;
  g.fillStyle="rgba(5,16,28,.92)";g.fillRect(5,4,1014,248);g.strokeStyle="#62d8cc";g.lineWidth=10;g.strokeRect(8,7,1008,241);
- g.fillStyle="#9fdfda";g.font="800 28px sans-serif";g.fillText("FAN SIMULATOR / INTERACTION",42,64);
+ g.fillStyle="#9fdfda";g.font="800 28px sans-serif";g.fillText(vrFocus&&!captionUntil?"AIM + TRIGGER":"FAN SIMULATOR / INTERACTION",42,64);
  g.fillStyle="#fff";g.font="700 42px sans-serif";
- let words=lastText.split(" "),line="",y=127;
+ let words=(captionUntil?lastText:"INTERACT: "+vrFocus.name).split(" "),line="",y=127;
  for(const word of words){const test=line?line+" "+word:word;if(g.measureText(test).width>940){g.fillText(line,42,y);line=word;y+=55;}else line=test;}
  if(line)g.fillText(line,42,y);
  gl.bindTexture(gl.TEXTURE_2D,hudTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,hudTextCanvas);gl.generateMipmap(gl.TEXTURE_2D);
@@ -562,7 +570,7 @@ function draw(proj,view,head){
   texDraw(pcTexture,pcM);gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);
  }
 
- if(vrSession&&head&&captionUntil){
+ if(vrSession&&head&&(captionUntil||vrFocus)){
   if(hudTextDirty)updateHudPanel();
   const headWorld=multiply(xrRoot(),head.transform.matrix);
   const pos=multiply(multiply(headWorld,tr(0,-.35,-1.15)),sc(.96,.24,1));
@@ -612,7 +620,8 @@ $("vr").onclick=async()=>{
     const ray=gazeXR();interact(ray?hitRay(ray.origin,ray.dir,3):null);
    }
   });
-  req.addEventListener("end",()=>{closePc();vrSession=null;headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
+  req.addEventListener("squeezestart",()=>{if(pcState>0){closePc();say("CLOSED THE LAUNCHER. THIS WILL HELP, SURELY.");}});
+  req.addEventListener("end",()=>{closePc();vrSession=null;vrFocus=null;vrFocusID="";headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
   showGame();touch.hidden=true;lastFrame=performance.now();req.requestAnimationFrame(xrFrame);
  }catch(e){status.textContent="VR START ERROR: "+e.message;console.error(e);$("vr").disabled=false;}
 };
