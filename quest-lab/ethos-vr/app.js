@@ -477,6 +477,16 @@ function hitRay(origin,dir,distance=3.0){let closest=null,best=distance;
 const state={x:.02,z:2.30,yaw:-.01745,pitch:-.07,eye:1.68,entered:false,last:performance.now(),snapArmed:true};
 let vrSession=null,vrRef=null,refFloor=true,lastSource=null,headPose=null,controllers=[],frameN=0,standalone=I();
 let vrFocus=null,vrFocusID="";
+const questQA={version:"meta-webxr-audit-04",session:"idle",sessionCount:0,
+ referenceSpace:null,eyes:0,eyeLabels:[],eyeOffsets:[],viewportWidths:[],
+ xrFrames:0,trackedPoseFrames:0,controllers:0,inputProfiles:[],
+ frameRate:null,supportedFrameRates:[],fixedFoveation:null,frameMs:0,
+ error:null,emulator:!!window.__ethosMetaEmulator,contextLost:false};
+window.__ETHOS_QUEST_QA=questQA;
+const qaVisible=new URLSearchParams(location.search).has("questqa");
+canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();questQA.contextLost=true;questQA.error="WebGL context lost";status.textContent=questQA.error;});
+canvas.addEventListener("webglcontextrestored",()=>{questQA.contextLost=false;questQA.error="WebGL context restored: reload experience";});
+
 const key={},motion={forward:0,strafe:0},touch=$("touch");
 function desktopRay(){return {origin:[state.x,state.eye,state.z],dir:[-Math.sin(state.yaw)*Math.cos(state.pitch),Math.sin(state.pitch),-Math.cos(state.yaw)*Math.cos(state.pitch)]};}
 function xrRoot(){return multiply(tr(state.x,refFloor?0:state.eye,state.z),ry(state.yaw));}
@@ -501,11 +511,17 @@ function tick(dt,frame){
  if(vrSession&&frame){
   headPose=frame.getViewerPose(vrRef);let f=0,s=0,turn=0;controllers=[];
   for(const input of vrSession.inputSources){
-   if(!input.gamepad)continue;const g=input.gamepad,ax=g.axes;
-   let sx=ax.length>2?ax[2]:(ax[0]||0),sy=ax.length>3?ax[3]:(ax[1]||0);
-   if(Math.abs(sx)<.16)sx=0;if(Math.abs(sy)<.16)sy=0;
-   if(input.handedness==="left"){f=-sy;s=sx;}
-   if(input.handedness==="right")turn=sx;
+   // Meta Quest Touch controllers use XRInputSource.targetRaySpace and the
+   // xr-standard Gamepad. An input without a Gamepad (hands) still has a ray.
+   if(input.gamepad){
+     const axes=input.gamepad.axes||[];
+     let sx=axes.length>2?axes[2]:(axes[0]||0);
+     let sy=axes.length>3?axes[3]:(axes[1]||0);
+     if(Math.abs(sx)<.16)sx=0;
+     if(Math.abs(sy)<.16)sy=0;
+     if(input.handedness==="left"){f=-sy;s=sx;}
+     if(input.handedness==="right")turn=sx;
+   }
    const pp=frame.getPose(input.targetRaySpace,vrRef);
    if(pp){const m=multiply(xrRoot(),pp.transform.matrix);const d=vector(m,[0,0,-1]);controllers.push({hand:input.handedness,m,origin:point(m,[0,0,0]),end:point(m,[0,0,-2]),dir:d});}
   }
@@ -588,8 +604,20 @@ function desktopFrame(t){requestAnimationFrame(desktopFrame);if(vrSession||!stat
 requestAnimationFrame(desktopFrame);
 function xrFrame(t,frame){if(!vrSession)return;vrSession.requestAnimationFrame(xrFrame);const dt=Math.min((t-lastFrame)/1000,.06);lastFrame=t;tick(dt,frame);
  if(!headPose)return;
- const layer=vrSession.renderState.baseLayer;gl.bindFramebuffer(gl.FRAMEBUFFER,layer.framebuffer);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
- for(const eye of headPose.views){const v=layer.getViewport(eye);gl.viewport(v.x,v.y,v.width,v.height);
+ questQA.xrFrames++;
+ questQA.trackedPoseFrames++;
+ questQA.eyes=headPose.views.length;
+ questQA.eyeLabels=headPose.views.map(eye=>eye.eye);
+ questQA.eyeOffsets=headPose.views.map(eye=>[eye.transform.position.x,eye.transform.position.y,eye.transform.position.z]);
+ questQA.frameMs=questQA.frameMs?questQA.frameMs*.91+dt*1000*.09:dt*1000;
+ questQA.controllers=vrSession.inputSources.length;
+ questQA.inputProfiles=Array.from(vrSession.inputSources,src=>({hand:src.handedness,profiles:[...src.profiles],gamepad:!!src.gamepad}));
+ questQA.frameRate=typeof vrSession.frameRate==="number"?vrSession.frameRate:null;
+ if(qaVisible&&questQA.xrFrames%45===0){
+   status.textContent="META QUEST WEBXR: "+questQA.eyes+" eyes | "+questQA.controllers+" inputs | "+questQA.xrFrames+" frames | "+questQA.frameMs.toFixed(1)+"ms/frame | "+(questQA.frameRate||"?")+"Hz";
+ }
+ const layer=vrSession.renderState.baseLayer;gl.bindFramebuffer(gl.FRAMEBUFFER,layer.framebuffer);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);questQA.viewportWidths=[];
+ for(const eye of headPose.views){const v=layer.getViewport(eye);questQA.viewportWidths.push(v.width);gl.viewport(v.x,v.y,v.width,v.height);
   const rootInverse=multiply(ry(-state.yaw),tr(-state.x,refFloor?0:-state.eye,-state.z));
   const eyeView=multiply(eye.transform.inverse.matrix,rootInverse);
   draw(eye.projectionMatrix,eyeView,headPose);
@@ -616,9 +644,24 @@ $("vr").onclick=async()=>{
   audio();const req=await navigator.xr.requestSession("immersive-vr",{optionalFeatures:["local-floor","bounded-floor"]});
   await gl.makeXRCompatible();
   const layer=new XRWebGLLayer(req,gl,{alpha:false,depth:true,antialias:true});
+  // Meta's WebXR performance documentation recommends scaling VR
+  // refresh/foveation from real device capabilities instead of UA guesses.
+  if("fixedFoveation" in layer){
+    try{layer.fixedFoveation=.50;questQA.fixedFoveation=layer.fixedFoveation;}catch(e){console.warn("Foveation unavailable",e);}
+  }
+  questQA.session="starting";
+  questQA.sessionCount++;
+  questQA.error=null;
+  questQA.xrFrames=0;
+  questQA.emulator=!!window.__ethosMetaEmulator;
+  questQA.supportedFrameRates=Array.from(req.supportedFrameRates||[]);
+  // Keep the browser-selected frame rate; check the actual value in diagnostics.
+
   req.updateRenderState({baseLayer:layer,depthNear:.07,depthFar:45});
-  try{vrRef=await req.requestReferenceSpace("local-floor");refFloor=true;}catch(e){vrRef=await req.requestReferenceSpace("local");refFloor=false;}
-  vrSession=req;vrSession.addEventListener("selectstart",ev=>{
+  try{vrRef=await req.requestReferenceSpace("local-floor");refFloor=true;questQA.referenceSpace="local-floor";}
+  catch(e){vrRef=await req.requestReferenceSpace("local");refFloor=false;questQA.referenceSpace="local";}
+  vrSession=req;questQA.session="running";
+  vrSession.addEventListener("selectstart",ev=>{
    lastSource=ev.inputSource;
    const pose=ev.frame.getPose(ev.inputSource.targetRaySpace,vrRef);
    if(pose){const m=multiply(xrRoot(),pose.transform.matrix);interact(hitRay(point(m,[0,0,0]),vector(m,[0,0,-1]),3.0));}else{
@@ -626,9 +669,9 @@ $("vr").onclick=async()=>{
    }
   });
   req.addEventListener("squeezestart",()=>{if(pcState>0){closePc();say("CLOSED THE LAUNCHER. THIS WILL HELP, SURELY.");}});
-  req.addEventListener("end",()=>{closePc();vrSession=null;vrFocus=null;vrFocusID="";headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
+  req.addEventListener("end",()=>{questQA.session="ended";closePc();vrSession=null;vrFocus=null;vrFocusID="";headPose=null;touch.hidden=isTouch?false:true;menu.classList.remove("closed");state.entered=false;status.textContent="Exited VR. Re-enter whenever ready.";});
   showGame();touch.hidden=true;lastFrame=performance.now();req.requestAnimationFrame(xrFrame);
- }catch(e){status.textContent="VR START ERROR: "+e.message;console.error(e);$("vr").disabled=false;}
+ }catch(e){questQA.session="error";questQA.error=e.message;status.textContent="VR START ERROR: "+e.message;console.error(e);$("vr").disabled=false;}
 };
 window.addEventListener("keydown",ev=>{key[ev.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(ev.code))ev.preventDefault();
  if(pcState>0&&ev.code==="Escape"){closePc();return;}
