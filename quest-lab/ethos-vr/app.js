@@ -312,7 +312,7 @@ async function loadSourceVisuals(){
  }
  async function sourceImage(name){
   if(!files[name])throw Error("Missing visual source "+name);
-  return await createImageBitmap(new Blob([files[name]],{type:"image/webp"}));
+  return await createImageBitmap(new Blob([files[name]],{type:"image/webp"}),{imageOrientation:"flipY"});
  }
  const source={};const aspect={};
  for(let i=1;i<=6;i++){const id=String(i).padStart(2,"0"),bmp=await sourceImage(id+".webp");source[i]=texture(bmp);aspect[i]=bmp.width/bmp.height;bmp.close();}
