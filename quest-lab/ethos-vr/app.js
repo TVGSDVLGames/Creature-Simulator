@@ -51,57 +51,44 @@ function box(x,y,z,w,h,d,color,emit=0){
  for(const f of faces)for(const i of [0,1,2,0,2,3])roomV.push(...f[i],...f[4],...color,emit,0,0);
 }
 function buildRoom(){
- // Geometry adapted from the original 95,875,014-byte Godot Pass 5 archive.
- // 8m x 6m room; rear wall z=-3, workstation x=-2.32, bed x=2.76.
- const wall=[.17,.18,.20],oak=[.27,.17,.11],trim=[.08,.085,.095],green=[.38,.93,.18];
- box(0,-.11,0,8,.22,6,[.34,.245,.17]);
- for(let i=0;i<26;i++){const z=-2.85+i*.227;box(0,.014,z,7.80,.024,.20,[.26+(i%3)*.023,.172+(i%3)*.014,.11+(i%3)*.008]);}
- box(0,1.55,-3,8,3.1,.16,wall);
- box(0,1.55,3,8,3.1,.16,wall);
- box(-4,1.55,0,.16,3.1,6,wall);
- box(4,1.55,0,.16,3.1,6,wall);
- box(0,3.05,0,8,.12,6,[.31,.32,.34]);
- // Real baseboards and crown moldings.
- for(const z of [-2.88,2.88]){box(0,.095,z,7.8,.19,.085,oak);box(0,2.94,z,7.8,.10,.09,trim);}
- for(const x of [-3.88,3.88]){box(x,.095,0,.085,.19,5.8,oak);box(x,2.94,0,.09,.10,5.8,trim);}
- // P4 slat feature wall behind desk, 14 solid wooden slats.
- box(-2.28,1.48,-2.875,2.45,2.62,.035,[.055,.061,.070]);
- for(let i=0;i<14;i++)box(-3.38+i*.17,1.48,-2.835,.075,2.52,.055,[.36,.25,.18]);
- // Dark glass and blinds, left wall, z=2.05.
- const wx=-3.885,wz=2.05;
- box(wx,1.62,wz,.025,1.34,1.34,[.033,.056,.078],.25);
- for(const dy of [-.72,.72])box(wx+.025,1.62+dy,wz,.07,.09,1.52,trim);
- for(const dz of [-.72,.72])box(wx+.025,1.62,wz+dz,.07,1.52,.09,trim);
- box(wx+.032,1.62,wz,.075,1.38,.055,trim);
- for(let i=0;i<10;i++)box(wx+.055,1.08+i*.115,wz,.031,.025,1.22,[.42,.43,.44]);
- // Desk rug, bedside rug.
- box(-2.12,.027,-.80,2.95,.045,2.5,[.23,.29,.31]);
- box(1.54,.028,-.38,1.20,.035,1.72,[.27,.30,.28]);
- // Room furniture and clutter are loaded as the original Godot Pass 5 OBJ meshes.
- // Decorative wall features, trim, window and shrine stay native geometry.
- // Original shrine x=2.65, z=-2.30.
- box(2.65,.65,-2.30,1.70,.11,.72,[.33,.25,.18]);
- for(let x of [1.95,3.35])box(x,.33,-2.30,.075,.60,.65,[.12,.14,.15]);
- box(2.65,1.4,-2.68,1.75,1.45,.08,[.035,.04,.045]);
- for(let x of [2.03,2.28,3.02,3.28])box(x,.98,-2.36,.070,.48,.070,green,1);
- for(let i=0;i<5;i++)box(2.15+i*.25,.83,-2.25,.16,.26,.16,i%2?[.63,.06,.95]:green,1);
- // Timer at x=0,z=-2.845; steel enclosure.
- box(0,2.54,-2.84,3,.72,.10,[.075,.10,.115]);
- // Trash at original x=-3.43,z=-1.31.
- box(-3.43,.33,-1.31,.47,.66,.47,[.075,.08,.09]);
- box(-3.43,.68,-1.31,.52,.05,.52,[.20,.22,.23]);
- for(let i=0;i<5;i++)box(-3.60+i*.08,.70,-1.31,.10,.05,.11,[.53,.52,.48]);
- // The original Godot Pass 5 detailed pizza boxes are now bundled as real meshes.
- // cans, printouts, socks and clutter per Pass 4/5.
- for(let i=0;i<8;i++){const x=-3.0+(i*13%29)/9,z=.13+(i*7%16)/8;
-  box(x,.105,z,.08,.18,.082,[[.35,.05,.05],[.055,.20,.38],[.32,.45,.06]][i%3]);}
- for(let i=0;i<6;i++)box(-2.9+(i*11%23)/8,.018,.28+(i*5%14)/7,.35,.01,.45,[.62,.60,.54]);
- // Door toward player's starting position.
- box(2.22,1.18,2.89,1.4,2.38,.08,[.19,.23,.26]);
- box(2.76,1.12,2.81,.13,.06,.13,[.85,.75,.44]);
- // Physical light fixture at ceiling.
- box(.25,2.89,.30,.35,.13,.35,[.75,.59,.40],1);
- // Per original source, no floating world text.
+ // Reconstructed from the actual 95 MB Godot PASS5 project: 8 x 6m, workstation left, bed right.
+ box(0,-.10,0,8,.20,6,[.33,.24,.19]);
+ box(0,1.55,-3,8,3.1,.16,[.24,.26,.29]);
+ box(0,1.55,3,8,3.1,.16,[.23,.24,.26]);
+ box(-4,1.55,0,.16,3.1,6,[.25,.26,.27]);
+ box(4,1.55,0,.16,3.1,6,[.25,.27,.30]);
+ box(0,3.06,0,8,.12,6,[.22,.22,.24]);
+ for(const x of [-3.87,3.87]){box(x,.097,0,.085,.19,5.8,[.27,.22,.18]);box(x,2.95,0,.085,.10,5.8,[.29,.22,.17]);}
+ for(const z of [-2.88,2.88]){box(0,.097,z,7.80,.19,.085,[.27,.22,.18]);box(0,2.95,z,7.80,.10,.085,[.29,.22,.17]);}
+ box(-2.12,.018,-.80,2.95,.036,2.50,[.26,.27,.30]);
+ // Slatted wooden accent wall and dark backing identical in placement to original.
+ box(-2.28,1.48,-2.87,2.45,2.62,.055,[.068,.075,.081]);
+ for(let i=0;i<14;i++)box(-3.38+i*.17,1.48,-2.82,.075,2.52,.055,[.40,.31,.23]);
+ // Actual left-side window with blinds, as in the Godot build.
+ box(-3.87,1.62,2.05,.04,1.34,1.34,[.06,.11,.15]);
+ for(const yy of [0.90,2.34])box(-3.83,yy,2.05,.09,.07,1.52,[.14,.16,.17]);
+ for(const zz of [1.32,2.78])box(-3.83,1.62,zz,.09,1.52,.07,[.14,.16,.17]);
+ for(let j=0;j<10;j++)box(-3.81,1.08+j*.115,2.05,.04,.025,1.22,[.49,.49,.49]);
+ // Clock is a real wall-mounted panel, not a floating DOM label.
+ box(0,2.54,-2.87,3.10,.79,.10,[.025,.032,.035]);
+ // Actual large physical ETHOS shrine from the original source coordinates.
+ box(2.65,.65,-2.30,1.70,.11,.72,[.42,.30,.22]);
+ box(2.65,1.40,-2.73,1.75,1.45,.08,[.027,.035,.038]);
+ for(const x of [2.03,2.28,3.02,3.28])box(x,.94,-2.36,.065,.48,.065,[.41,.95,.23],1);
+ for(let i=0;i<5;i++)box(2.15+i*.25,.83,-2.25,.16,.26,.16,i%2?[.61,.10,.88]:[.41,.93,.20],1);
+ // Physical computer screen; its source artwork is drawn in front at the original dimensions.
+ box(-2.20,1.55,-2.45,1.48,.94,.12,[.064,.078,.095]);
+ // Ceiling warm fixture & desk / shrine practical lights.
+ box(.25,2.88,.30,.48,.10,.48,[1,.73,.49],1);
+ box(-3.15,1.17,-2.35,.09,.24,.06,[.22,.91,.12],1);
+ // Trash can and little clutter from the original bedroom.
+ box(-3.43,.32,-1.31,.43,.63,.42,[.070,.074,.080]);
+ box(-3.43,.66,-1.31,.47,.045,.46,[.13,.14,.15]);
+ for(let i=0;i<12;i++){const x=-3.70+(i%4)*.25,y=.36+Math.floor(i/4)*.52;box(x,y,.70,.08,.31,.22,[[.26,.32,.28],[.36,.22,.44],[.23,.31,.42],[.38,.31,.2]][i%4]);}
+ for(const [x,z,c] of [[-.52,2.1,[.5,.08,.10]],[.37,2.4,[.11,.25,.5]],[1.1,1.65,[.44,.48,.08]],[.2,.8,[.50,.08,.10]]])box(x,.1,z,.1,.2,.1,c);
+ // Door on front wall.
+ box(2.27,1.16,2.87,1.35,2.35,.065,[.33,.27,.22]);
+ box(2.82,1.10,2.79,.09,.06,.12,[.72,.67,.45]);
 }
 buildRoom();const roomG=mesh(roomV);
 let assets={},props=[],loaded=0,failed=0;const expected=["beddouble","desk","chairdesk","computerscreen","computerkeyboard","computermouse","bookcaseopen","lamproundfloor","plantsmall2","sidetabledrawers","tablecoffeesquare","loungedesignchair","pizza-box","soda-can","cup-coffee","pizza"];
@@ -313,26 +300,26 @@ buildPosters();
 const laserBuffer=gl.createBuffer();
 let pcState=0,pcTexture=null,pcPanelCanvas=null,pcPanelCtx=null,pcAtlasImage=null,pcChecks=0;
 const target=[
- {id:"pc",name:"PC / PLAY ETHOS",p:[-2.20,1.55,-2.40],r:.83},
- {id:"timer",name:"TIME SINCE ETHOS",p:[0,2.54,-2.84],r:.88},
- {id:"bed",name:"BED",p:[2.76,.68,-.65],r:1.07},
- {id:"shrine",name:"ETHOS SHRINE",p:[2.65,1.16,-2.30],r:.95},
- {id:"pizza",name:"PIZZA",p:[-.40,.20,1.72],r:.89},
- {id:"trash",name:"TRASH",p:[-3.43,.45,-1.31],r:.69},
- {id:"poster",name:"ETHOS POSTER",p:[-3.81,1.89,-.9],r:.85},
- {id:"shelf",name:"SHELF",p:[-3.25,1.2,.72],r:.88},
- {id:"door",name:"EXIT",p:[2.22,1.3,2.87],r:.91}
+ {id:"PC",name:"PLAY ETHOS / CHECK PC",p:[-2.20,1.55,-2.385],r:.78},
+ {id:"CLOCK",name:"TIME SINCE ETHOS",p:[0,2.54,-2.84],r:1.15},
+ {id:"BED",name:"ATTEMPT SLEEP",p:[2.76,.68,-.65],r:1.1},
+ {id:"SHRINE",name:"ETHOS SHRINE",p:[2.65,1.38,-2.30],r:1.10},
+ {id:"PIZZA",name:"PIZZA BOXES",p:[-.40,.20,1.72],r:.8},
+ {id:"TRASH",name:"TRASH CAN",p:[-3.43,.43,-1.31],r:.53},
+ {id:"POSTER",name:"ETHOS PRESS SHOTS",p:[-3.72,1.9,-.7],r:1.00},
+ {id:"SHELF",name:"COLLECTOR SHELF",p:[-3.25,1.13,.72],r:.95},
+ {id:"DOOR",name:"QUIT TO REAL LIFE",p:[2.26,1.31,2.83],r:.9}
 ];
 const lines={
- pc:["PLAY ETHOS", "GAME OFFLINE!"],
- timer:["NO, STARING AT IT DOES NOT MAKE THE NUMBER SMALLER."],
- bed:["SLEEP? WITH ETHOS STILL OFFLINE? BE SERIOUS."],
- shrine:["A COMPLETELY NORMAL AMOUNT OF MEMORABILIA."],
- pizza:["FRESHNESS STATUS: ALSO OFFLINE."],
- trash:["ARCHAEOLOGISTS WILL DATE THIS LAYER TO THE FIRST PLAYTEST."],
- poster:["EXPLAIN WHY THE MOVEMENT WAS PEAK TO ABSOLUTELY NOBODY."],
- shelf:["A COMPLETELY NORMAL AMOUNT OF MEMORABILIA."],
- door:["QUIT TO REAL LIFE? THERE IS NO BACKUP SAVE."]
+ PC:["THE LAUNCHER STARES BACK AT YOU.","PLAY ETHOS? IT'S BEEN A WHILE."],
+ CLOCK:["NO, STARING AT IT DOES NOT MAKE THE NUMBER SMALLER.","THIS NUMBER IS VERY RUDE."],
+ BED:["SLEEP? WITH ETHOS STILL OFFLINE? BE SERIOUS.","YOU'VE BEEN DREAMING IN THIRD PERSON."],
+ SHRINE:["A COMPLETELY NORMAL AMOUNT OF MEMORABILIA.","THE CANDLES ARE DOING MORE WORK THAN MATCHMAKING."],
+ PIZZA:["FRESHNESS STATUS: ALSO OFFLINE.","IT HAS EVOLVED INTO SOMETHING ELSE."],
+ TRASH:["ARCHAEOLOGISTS WILL DATE THIS LAYER TO THE FIRST PLAYTEST.","A CRUMPLED NOTE SAYS: 'SOON'."],
+ POSTER:["REMEMBER WHEN WE COULD ACTUALLY PLAY THIS?","THIS WAS A COMPLETELY NORMAL AMOUNT OF SCREENSHOTS."],
+ SHELF:["A COMPLETELY NORMAL COLLECTION.","NONE OF THIS IS OBSESSIVE. AT ALL."],
+ DOOR:["QUIT TO REAL LIFE? THAT DOESN'T SOUND FUN.","THE SERVERS COULD RETURN AT ANY MOMENT."]
 };
 let checks=0,interactionCount={},lastText="",captionUntil=0,sound=null;
 let effectClick=null,effectDenied=null;
@@ -442,7 +429,14 @@ function desktopRay(){return {origin:[state.x,state.eye,state.z],dir:[-Math.sin(
 function xrRoot(){return multiply(tr(state.x,refFloor?0:state.eye,state.z),ry(state.yaw));}
 function gazeXR(){if(!headPose)return null;const m=multiply(xrRoot(),headPose.transform.matrix);return {origin:point(m,[0,0,0]),dir:vector(m,[0,0,-1])};}
 function currentRay(){return vrSession?gazeXR():desktopRay();}
-function blocked(x,z){if(Math.abs(x)>3.68||Math.abs(z)>2.68)return true;if(x>1.6&&x<3.7&&z>-1.88&&z<.6)return true;if(x>-3.7&&x<-.89&&z<-1.27)return true;if(x>1.73&&z<-1.8)return true;return false;}
+function blocked(x,z){
+ if(Math.abs(x)>3.60||Math.abs(z)>2.70)return true;
+ if(x>1.7&&x<3.76&&z>-1.78&&z<.51)return true;
+ if(x<-1.0&&x>-3.84&&z<-1.40)return true;
+ if(x<-2.65&&z>.39&&z<1.11)return true;
+ if(x>1.80&&z<-1.9)return true;
+ return false;
+}
 function advance(dt,forward,strafe){if(Math.abs(forward)<.07)forward=0;if(Math.abs(strafe)<.07)strafe=0;
  const speed=Math.min(2.0,2.35*dt),a=state.yaw,dx=(-Math.sin(a)*forward+Math.cos(a)*strafe)*speed,dz=(-Math.cos(a)*forward-Math.sin(a)*strafe)*speed;
  if(!blocked(state.x+dx,state.z))state.x+=dx;
