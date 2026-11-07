@@ -335,8 +335,30 @@ const lines={
  door:["QUIT TO REAL LIFE? THERE IS NO BACKUP SAVE."]
 };
 let checks=0,interactionCount={},lastText="",captionUntil=0,sound=null;
-function audio(){if(sound)return;try{sound=new (window.AudioContext||window.webkitAudioContext)();const osc=sound.createOscillator(),gain=sound.createGain();osc.type="sine";osc.frequency.value=62;gain.gain.value=.007;osc.connect(gain);gain.connect(sound.destination);osc.start();}catch(e){console.warn(e);}}
-function beep(f=520){if(!sound)return;const o=sound.createOscillator(),v=sound.createGain(),now=sound.currentTime;o.type="triangle";o.frequency.setValueAtTime(f,now);o.frequency.exponentialRampToValueAtTime(f*.72,now+.10);v.gain.setValueAtTime(.038,now);v.gain.exponentialRampToValueAtTime(.0001,now+.16);o.connect(v);v.connect(sound.destination);o.start(now);o.stop(now+.18);}
+let effectClick=null,effectDenied=null;
+function audio(){
+ if(sound)return;
+ try{
+  sound=new Audio("assets/room_hum.ogg");sound.loop=true;sound.volume=.22;
+  sound.play().catch(e=>console.warn("Audio requires interaction",e));
+  effectClick=new Audio("assets/ui_click.ogg");effectClick.volume=.55;
+  effectDenied=new Audio("assets/server_denied.ogg");effectDenied.volume=.68;
+ }catch(e){console.warn("Original archived audio unavailable",e);}
+}
+function beep(f=520){
+ // Pass5 sound effects, recovered from the original Godot archive.
+ const src=f<450?effectDenied:effectClick;
+ if(src){try{const a=src.cloneNode();a.volume=src.volume;a.play().catch(()=>{});}catch(e){}return;}
+ // Fallback beep only if browser audio decode fails.
+ try{
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;
+  o.frequency.value=f;o.type="triangle";g.gain.setValueAtTime(.022,t);
+  g.gain.exponentialRampToValueAtTime(.001,t+.13);
+  o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.14);
+  setTimeout(()=>ctx.close().catch(()=>{}),400);
+ }catch(e){}
+}
 function say(s){lastText=s;caption.textContent=s;caption.classList.add("show");captionUntil=performance.now()+5100;beep(480);hudTextDirty=true;}
 function ensurePC(){
  if(pcPanelCanvas)return;
