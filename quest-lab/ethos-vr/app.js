@@ -129,7 +129,7 @@ async function parseGLB(array){
   if(im.bufferView===undefined)return null;
   const bv=g.bufferViews[im.bufferView],imgBuffer=new Uint8Array(array,binStart+(bv.byteOffset||0),bv.byteLength);
   try{
-   const image=await createImageBitmap(new Blob([imgBuffer],{type:im.mimeType||"image/png"}));
+   const image=await createImageBitmap(new Blob([imgBuffer],{type:im.mimeType||"image/png"}),{imageOrientation:"flipY"});
    const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,image);
    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
