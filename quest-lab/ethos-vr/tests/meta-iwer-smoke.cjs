@@ -41,6 +41,32 @@ const {chromium}=require('playwright');
  if(delta<.1)throw Error('Head movement did not propagate through WebXR viewer pose: delta '+delta);
  if(later.xrFrames<=first.xrFrames)throw Error('XR animation loop stopped');
  if(later.inputProfiles.length<2)throw Error('Meta Quest input sources not connected: '+JSON.stringify(later.inputProfiles));
+
+ // Emulate left thumbstick, right snap-turn and right controller trigger
+ // with the actual Meta IWER Touch Plus controller API.
+ const beforeControls=await page.evaluate(()=>structuredClone(window.__ETHOS_QUEST_QA));
+ await page.evaluate(()=>window.__questIWER.controllers.left.updateAxes('thumbstick',0,-1));
+ await page.waitForTimeout(1100);
+ await page.evaluate(()=>window.__questIWER.controllers.left.updateAxes('thumbstick',0,0));
+ await page.waitForTimeout(250);
+ const afterMove=await page.evaluate(()=>structuredClone(window.__ETHOS_QUEST_QA));
+ const moved=Math.hypot(afterMove.player[0]-beforeControls.player[0],afterMove.player[1]-beforeControls.player[1]);
+ if(moved<.06)throw Error('Quest left-stick locomotion failed: '+moved+' '+JSON.stringify({beforeControls:beforeControls.player,after:afterMove.player}));
+ await page.evaluate(()=>window.__questIWER.controllers.right.updateAxes('thumbstick',.92,0));
+ await page.waitForTimeout(450);
+ await page.evaluate(()=>window.__questIWER.controllers.right.updateAxes('thumbstick',0,0));
+ await page.waitForTimeout(250);
+ const afterTurn=await page.evaluate(()=>structuredClone(window.__ETHOS_QUEST_QA));
+ const snap=Math.abs(afterTurn.player[2]-afterMove.player[2]);
+ if(snap<.38||snap>.71)throw Error('Quest right-stick snap turn failed: '+snap);
+ await page.evaluate(()=>window.__questIWER.controllers.right.updateButtonValue('trigger',1));
+ await page.waitForTimeout(300);
+ await page.evaluate(()=>window.__questIWER.controllers.right.updateButtonValue('trigger',0));
+ await page.waitForTimeout(300);
+ const afterTrigger=await page.evaluate(()=>structuredClone(window.__ETHOS_QUEST_QA));
+ if(afterTrigger.selectEvents<=beforeControls.selectEvents)throw Error('Quest Touch Plus trigger did not fire WebXR selectstart: '+JSON.stringify(afterTrigger));
+ if(afterTrigger.lastSelectHand!=='right')throw Error('Wrong Quest controller event handedness: '+afterTrigger.lastSelectHand);
+
  await page.screenshot({path:'/tmp/ethos-iwer/meta-iwer-quest3.png'});
  const summary={profile:"Meta Quest 3",emulator:later.emulator,
   frames:later.xrFrames,eyes:later.eyes,
@@ -48,6 +74,7 @@ const {chromium}=require('playwright');
   controllers:later.inputProfiles,referenceSpace:later.referenceSpace,
   viewportWidths:later.viewportWidths,
   frameMs:later.frameMs,frameRate:later.frameRate,
+  leftStickMeters:moved,rightSnapRadians:snap,triggerEvents:afterTrigger.selectEvents,
   consoleErrors:failures};
  fs.writeFileSync('/tmp/ethos-iwer/meta-iwer-result.json',JSON.stringify(summary,null,2));
  console.log('META QUEST 3 IWER TEST RESULT\n'+JSON.stringify(summary,null,2));
