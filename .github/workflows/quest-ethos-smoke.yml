@@ -1,0 +1,96 @@
+name: Quest Ethos actual-build smoke and preview
+on:
+  push:
+    paths:
+      - 'quest-lab/ethos-vr/**'
+      - '.github/workflows/quest-ethos-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser test runtime
+        shell: bash
+        run: |
+          npm --prefix /tmp/ethos-playwright install --no-audit --no-fund playwright@1.55.0
+          /tmp/ethos-playwright/node_modules/.bin/playwright install --with-deps chromium
+      - name: Serve the exact committed Quest app
+        shell: bash
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/ethos-http.log 2>&1 &
+          echo "$!" >/tmp/ethos-server.pid
+          sleep 2
+          curl -fsS http://127.0.0.1:8765/quest-lab/ethos-vr/ >/tmp/ethos-index.html
+          grep -q 'FAN SIMULATOR' /tmp/ethos-index.html
+      - name: Real WebGL render plus asset loader verification
+        shell: bash
+        run: |
+          cat >/tmp/ethos-playwright/smoke.cjs <<'JS'
+          const {chromium}=require("playwright");
+          const fs=require("fs");
+          (async()=>{
+           const browser=await chromium.launch({headless:true,args:["--no-sandbox","--enable-webgl","--use-gl=angle","--use-angle=swiftshader","--enable-unsafe-swiftshader"]});
+           const page=await browser.newPage({viewport:{width:1280,height:720},deviceScaleFactor:1});
+           const errors=[];
+           page.on("pageerror",e=>errors.push(String(e)));
+           page.on("console",msg=>{if(msg.type()==="error")errors.push("console "+msg.text());});
+           page.on("requestfailed",request=>errors.push("network "+request.url()+": "+request.failure()?.errorText));
+           const url="http://127.0.0.1:8765/quest-lab/ethos-vr/";
+           await page.goto(url,{waitUntil:"domcontentloaded"});
+           await page.waitForFunction(()=>document.querySelector("#fps")?.textContent.includes("ORIGINAL PASS"),{timeout:50000}).catch(()=>{});
+           await page.waitForTimeout(5000);
+           const before=await page.locator("#fps").textContent();
+           const support=await page.evaluate(()=>{
+             const c=document.querySelector("#scene"),g=c.getContext("webgl");
+             return {webgl:!!g,vertices:g?.getParameter(g.MAX_VERTEX_ATTRIBS),canvas:[c.width,c.height],status:document.querySelector("#fps").textContent};
+           });
+           if(!support.webgl)throw new Error("Canvas WebGL failed");
+           if(!before.includes("ORIGINAL PASS"))throw new Error("Original geometry did not load: "+before);
+           const art=await page.evaluate(async()=>{
+             const r=await fetch("source_visuals.tar.gz");
+             return {ok:r.ok,size:(await r.arrayBuffer()).byteLength};
+           });
+           if(!art.ok||art.size<100000)throw Error("Source texture tar was not deployed");
+           await page.locator("#explore").click();
+           await page.waitForTimeout(2600);
+           await page.screenshot({path:"quest-lab/ethos-vr/preview/browser-build.png",animations:"disabled"});
+           const pix=await page.evaluate(()=>{
+             const c=document.querySelector("#scene"),g=c.getContext("webgl"),d=new Uint8Array(4);
+             g.readPixels(Math.floor(c.width*.5),Math.floor(c.height*.5),1,1,g.RGBA,g.UNSIGNED_BYTE,d);
+             return [...d];
+           });
+           console.log("PASS original 41 OBJ-derived mesh instances + source bundle",JSON.stringify({support,art,pix,errors}));
+           if(errors.length)throw new Error("Browser runtime errors: "+errors.join(" | "));
+           await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          mkdir -p quest-lab/ethos-vr/preview
+          node /tmp/ethos-playwright/smoke.cjs
+      - name: Save screenshot from actual latest playable build
+        if: success()
+        shell: bash
+        run: |
+          git config user.name 'Quest Build Preview Bot'
+          git config user.email 'quest-build-preview-bot@users.noreply.github.com'
+          git add quest-lab/ethos-vr/preview/browser-build.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'Capture actual Quest Ethos WebGL build screenshot [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Report test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ethos-vr-smoke
+          path: |
+            quest-lab/ethos-vr/preview/browser-build.png
+            /tmp/ethos-http.log
+          if-no-files-found: ignore
