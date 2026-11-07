@@ -218,7 +218,12 @@ async function loadAssets(){
   "ORIGINAL PACKS "+actualCount+"/2 · KENNEY FALLBACK "+loaded+"/"+expected.length;
 }
 const posters=[];
-function texture(canvas2d){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,canvas2d);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.generateMipmap(gl.TEXTURE_2D);return t;}
+function texture(canvas2d){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,canvas2d);const pot=n=>n>0&&(n&(n-1))===0;const mip=pot(canvas2d.width)&&pot(canvas2d.height);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,mip?gl.LINEAR_MIPMAP_LINEAR:gl.LINEAR);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+ if(mip)gl.generateMipmap(gl.TEXTURE_2D);return t;}
 function canvas2D(w=512,h=512){const c=document.createElement("canvas");c.width=w;c.height=h;return [c,c.getContext("2d")];}
 function paintPoster(head,sub,color,tag){
  const [c,g]=canvas2D(512,768),grad=g.createLinearGradient(0,0,512,768);
@@ -244,9 +249,9 @@ function createClock(){const v=canvas2D(512,256);clockCanvas=v[0];clockContext=v
 function updateClock(){
  if(!clockContext)return;const g=clockContext;g.fillStyle="#091923";g.fillRect(0,0,512,256);
  g.lineWidth=6;g.strokeStyle="#67d9cd";g.strokeRect(8,8,496,240);g.fillStyle="#86ffdf";g.font="900 23px monospace";g.fillText("TIME SINCE ETHOS",28,49);
- const ms=Math.max(0,Date.now()-1729490400000);const days=Math.floor(ms/86400000);const hours=Math.floor(ms/3600000)%24;const mins=Math.floor(ms/60000)%60;
- g.fillStyle="#f3f7ff";g.font="900 69px monospace";g.fillText(String(days)+"d "+String(hours).padStart(2,"0")+"h",26,139);
- g.fillStyle="#d7b89d";g.font="22px monospace";g.fillText(String(mins).padStart(2,"0")+"m since Oct 2024 reveal",27,180);
+ const ms=Math.max(0,Date.now()-1729490400000);const days=Math.floor(ms/86400000);const hours=Math.floor(ms/3600000)%24;const mins=Math.floor(ms/60000)%60;const secs=Math.floor(ms/1000)%60;
+ g.fillStyle="#f3f7ff";g.font="900 69px monospace";g.fillText(String(days)+" DAYS",26,139);
+ g.fillStyle="#d7b89d";g.font="22px monospace";g.fillText(String(hours).padStart(2,"0")+":"+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0")+" SINCE THE PLAYTEST",27,180);
  g.fillStyle="#8ca6b8";g.font="16px monospace";g.fillText("PLAYTEST ENDED OCT 20, 2024 (PDT)",28,221);
  gl.bindTexture(gl.TEXTURE_2D,clockTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,clockCanvas);gl.generateMipmap(gl.TEXTURE_2D);
 }
@@ -289,9 +294,56 @@ function loadOriginalArt(){
  image.onerror=()=>{console.error("Original art atlas failed to load");fps.textContent="ORIGINAL ART MISSING / MODELS "+loaded+"/"+expected.length;};
  image.src="assets/original-ethos-atlas.webp";
 }
+async function loadSourceVisuals(){
+ // Directly recovered higher resolution ProjectEthosFanSimulator_PASS5_TITLE_HUMOR_GODOT.zip assets.
+ const response=await fetch("source_visuals.tar.gz",{cache:"force-cache"});
+ if(!response.ok)throw Error("PASS5 visual bundle returned "+response.status);
+ if(typeof DecompressionStream!=="function")throw Error("Browser lacks gzip DecompressionStream");
+ const raw=await new Response(response.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
+ const bytes=new Uint8Array(raw),decoder=new TextDecoder("ascii"),files={};let offset=0;
+ while(offset+512<=bytes.length){
+  const header=bytes.subarray(offset,offset+512);
+  const name=decoder.decode(header.subarray(0,100)).split("\0")[0];
+  if(!name)break;
+  const size=parseInt(decoder.decode(header.subarray(124,136)).replace(/\0/g,"").trim(),8)||0;
+  if(size<0||offset+512+size>bytes.length)throw Error("Invalid asset bundle member "+name);
+  files[name]=bytes.slice(offset+512,offset+512+size);
+  offset+=512+Math.ceil(size/512)*512;
+ }
+ async function sourceImage(name){
+  if(!files[name])throw Error("Missing visual source "+name);
+  return await createImageBitmap(new Blob([files[name]],{type:"image/webp"}));
+ }
+ const source={};const aspect={};
+ for(let i=1;i<=6;i++){const id=String(i).padStart(2,"0"),bmp=await sourceImage(id+".webp");source[i]=texture(bmp);aspect[i]=bmp.width/bmp.height;bmp.close();}
+ function poster(id,x,y,z,width,angle=0){
+  panel(source[id],x,y,z,width,width/aspect[id],angle);
+ }
+ // Exact original Godot PASS5 gallery positions. Prints and monitor use original in-game screenshots.
+ for(const [id,x,y,width] of [[1,-.78,1.57,1.18],[4,.72,1.50,1.18],[5,2,2.22,1.08],[3,3.12,2.12,1.08],[6,2.2,1.02,.92],[2,3.25,.98,.92]])poster(id,x,y,-2.790,width);
+ for(let i=0;i<6;i++){const z=-2.30+(i%3)*1.42;poster((i+1)%6+1,-3.803,i<3?2.18:1.12,z,1.02,Math.PI/2);}
+ for(let i=0;i<6;i++){const z=-2.15+(i%3)*1.72;poster((i+3)%6+1,3.803,i<3?2.12:1.15,z,1.12,-Math.PI/2);}
+ poster(5,2.65,1.72,-2.569,.82);poster(3,2.16,1.17,-2.569,.45);poster(6,3.12,1.17,-2.569,.45);
+ poster(5,-2.20,1.55,-2.330,1.30);
+ // Reuse original material albedos at real-world floor/wall positions, not procedural paintings.
+ const wallImg=await sourceImage("wall_paint.webp"),wallTex=texture(wallImg);wallImg.close();
+ const floorImg=await sourceImage("wood_floor_v2.webp"),floorTex=texture(floorImg);floorImg.close();
+ const rugImg=await sourceImage("carpet.webp"),rugTex=texture(rugImg);rugImg.close();
+ panel(wallTex,0,1.55,-2.910,8,3.05,0);
+ panel(wallTex,0,1.55,2.910,8,3.05,Math.PI);
+ panel(wallTex,-3.91,1.55,0,6,3.05,Math.PI/2);
+ panel(wallTex,3.91,1.55,0,6,3.05,-Math.PI/2);
+ posters.push({texture:floorTex,matrix:multiply(multiply(tr(0,.022,0),rx(-Math.PI/2)),sc(8,6,1))});
+ posters.push({texture:rugTex,matrix:multiply(multiply(tr(-2.12,.048,-.80),rx(-Math.PI/2)),sc(2.95,2.5,1))});
+ const art=new Image(),blobUrl=URL.createObjectURL(new Blob([files["04.webp"]],{type:"image/webp"}));art.src=blobUrl;await art.decode();
+ pcAtlasImage=art;paintPcPanel();
+ menu.style.backgroundImage="linear-gradient(90deg,rgba(1,6,14,.96),rgba(5,12,22,.70)),url('"+blobUrl+"')";
+ menu.style.backgroundSize="cover";menu.style.backgroundPosition="center";
+ fps.textContent="PASS5 SOURCE: 6 HIGH-RES POSTERS + 41 MODEL INSTANCES";
+}
 function buildPosters(){
  // Actual original game artwork (not synthetic replacement artwork).
- loadOriginalArt();
+ loadSourceVisuals().catch(e=>{console.warn("High resolution source pack fallback",e);loadOriginalArt();});
  panel(paintScreen(),-2.20,1.55,-2.355,1.30,.73,0);
  createClock();
  panel(clockTex,0,2.54,-2.770,2.94,.66,0);
@@ -367,7 +419,7 @@ function paintPcPanel(){
   c.textAlign="start";
  }else{
   c.fillStyle="#173446";c.fillRect(22,82,614,311);
-  if(pcAtlasImage){c.drawImage(pcAtlasImage,0,144,256,144,22,82,614,311);}
+  if(pcAtlasImage){if(pcAtlasImage.width>768)c.drawImage(pcAtlasImage,0,0,pcAtlasImage.width,pcAtlasImage.height,22,82,614,311);else c.drawImage(pcAtlasImage,0,144,256,144,22,82,614,311);}
   c.fillStyle="#091019bf";c.fillRect(22,311,614,82);
   c.fillStyle="#ffffff";c.font="900 51px sans-serif";c.fillText("PROJECT ETHOS",41,367);
   c.fillStyle="#21303f";c.fillRect(666,82,338,310);
