@@ -259,13 +259,50 @@ function updateClock(){
  gl.bindTexture(gl.TEXTURE_2D,clockTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,clockCanvas);gl.generateMipmap(gl.TEXTURE_2D);
 }
 function panel(tex,x,y,z,w,h,rot=0){posters.push({texture:tex,matrix:multiply(multiply(tr(x,y,z),ry(rot)),sc(w,h,1))});}
+function loadOriginalArt(){
+ // Original Godot Pass 5 screenshots: assets/ethos/{01_forum,02_outdoors,
+ // 03_pathfinders,04_combat,05_ethos_logo,06_evolution}.
+ // Bundled here as a 3x2 atlas (each tile is 256x144 pixels).
+ const image=new Image();
+ image.onload=()=>{
+  const originals=[];
+  for(let i=0;i<6;i++){
+   const [c,g]=canvas2D(512,256);
+   g.drawImage(image,(i%3)*256,Math.floor(i/3)*144,256,144,0,0,512,256);
+   originals.push(texture(c));
+  }
+  // Exact print positions and source selection from main.gd:Pass5.
+  const back=[
+   [0,-.78,1.57,-2.805,1.18],
+   [3,.72,1.50,-2.805,1.18],
+   [4,2.0,2.22,-2.805,1.08],
+   [2,3.12,2.12,-2.805,1.08],
+   [5,2.20,1.02,-2.805,.92],
+   [1,3.25,.98,-2.805,.92]
+  ];
+  for(const [id,x,y,z,w] of back)panel(originals[id],x,y,z,w,w/1.6,0);
+  for(let i=0;i<6;i++){
+   const z=-2.30+(i%3)*1.42,y=i<3?2.18:1.12;
+   panel(originals[(i+1)%6],-3.825,y,z,1.02,1.02/1.6,Math.PI/2);
+  }
+  for(let i=0;i<6;i++){
+   const z=-2.15+(i%3)*1.72,y=i<3?2.12:1.15;
+   panel(originals[(i+3)%6],3.825,y,z,1.12,1.12/1.6,-Math.PI/2);
+  }
+  panel(originals[4],2.65,1.72,-2.575,.82,.82/1.6);
+  panel(originals[2],2.16,1.17,-2.575,.45,.45/1.6);
+  panel(originals[5],3.12,1.17,-2.575,.45,.45/1.6);
+  fps.textContent="ORIGINAL PASS5 ART + "+loaded+"/"+expected.length+" MODELS";
+ };
+ image.onerror=()=>{console.error("Original art atlas failed to load");fps.textContent="ORIGINAL ART MISSING / MODELS "+loaded+"/"+expected.length;};
+ image.src="assets/original-ethos-atlas.webp";
+}
 function buildPosters(){
- panel(paintPoster("PRISM","BEND THE LIGHT","#d78dfa","CHAMPION // 04"),-3.716,1.98,-2.30,.92,1.40,Math.PI/2);
- panel(paintPoster("ROJAS","RUN IT BACK","#ff9c72","CHAMPION // 01"),-3.716,1.98,.39,.91,1.37,Math.PI/2);
- panel(paintPoster("ARBOR","NOTHING DIES","#64f6a6","CHAMPION // 03"),-1.92,2.32,-3.745,1.01,1.12,0);
- panel(paintPoster("BREEZE","ONE MORE RUN","#ffce80","CHAMPION // 02"),2.25,2.34,3.748,.83,1.1,Math.PI);
- panel(paintScreen(),.34,1.19,-2.56,.74,.38,0);
- createClock();panel(clockTex,1.90,2.24,-3.734,1.40,.69,0);
+ // Actual original game artwork (not synthetic replacement artwork).
+ loadOriginalArt();
+ panel(paintScreen(),-2.20,1.55,-2.355,1.30,.73,0);
+ createClock();
+ panel(clockTex,0,2.54,-2.770,2.94,.66,0);
 }
 buildPosters();
 const laserBuffer=gl.createBuffer();
